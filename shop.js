@@ -12,6 +12,16 @@ class DataHandler{
         data["HireSean"] = 4
         await chrome.storage.local.set(data)
     }
+    async PlayerHealth() {
+        let data = await chrome.storage.local.get()
+        if (data["PlayerHealth"]) {
+            data["PlayerHealth"] += 50
+        }
+        else {
+            data["PlayerHealth"] = 300
+        }
+        await chrome.storage.local.set(data)
+    }
     async upgrade(type) {
         let data = await chrome.storage.local.get()
         if (type.indexOf("Exponential") == -1) {
@@ -50,9 +60,17 @@ class DataHandler{
         return 1
     }
     async getPrice(type) {
-        if (type == "GetHealthy") {
+        console.log(type)
+        if (type == "PlayerHealth") {
             let Value = await this.getValue(type)
-            return Math.ceil(Math.pow(Math.pow(Value,1/2) + 2,3))
+            let X
+            if (Value > 250){
+                X = (Value - 250)/50 + 1
+            }
+            else {
+                X = 2
+            }
+            return ((Math.pow(X,2)) * 2000) + 2
         }
         if (type == "HireSean") {
             return 1000

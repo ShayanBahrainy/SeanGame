@@ -718,11 +718,11 @@ class DataHandler {
     }
     async getPlayerHealth() {
         let data = await chrome.storage.local.get()
-        if (data["playerhealth"]){
-            return data["playerhealth"]
+        if (data["PlayerHealth"]){
+            return data["PlayerHealth"]
         }
         else {
-            return 255
+            return 250
         }
     }
     async addBling(amount) {
@@ -737,7 +737,7 @@ class DataHandler {
         await chrome.storage.local.set(data)
     }
     async getPlayerBullet() {
-        let data = await chrome.storage.local.get("PlayerBullet")
+        let data = await chrome.storage.local.get()
         if (data["PlayerBullet"]) {
             return data["PlayerBullet"]
         }
