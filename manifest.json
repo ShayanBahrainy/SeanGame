@@ -11,9 +11,6 @@
     "background": {
       "service_worker": "background.js"
     },
-    "host_permissions": [
-      "https://www.highcpmgate.com/s43q8bu05t?key=bfe39054fb71db060815f1650c4f9fac"
-    ],
     "action": {
       "default_icon": {
         "128": "images/icon-128.png"
