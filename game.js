@@ -20,7 +20,7 @@ class Boss {
         let boss = this
         datahandler.getPlayerBullet().then(function (v) {
             boss.cooldowntime = 300/v
-            boss.cooldown = 3000
+            boss.cooldown = 300
             boss.maxhealth = 1200 * v 
             boss.health = boss.maxhealth
             boss.healtime = v + 150
