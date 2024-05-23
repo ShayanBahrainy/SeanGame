@@ -5,7 +5,7 @@ class DataHandler{
         }
         this.levelprices = {}
         this.levelprices[2] = 2500
-        this.levelprices[3] = 5000
+        this.levelprices[3] = 10000
     }
     async HireSean() {
         let data = await chrome.storage.local.get()
