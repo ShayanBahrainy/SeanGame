@@ -502,7 +502,7 @@ class Obstacle{
             this.speed *= 2
             this.health *= 3
             this.killvalue = 2
-            if (abhinav == undefined && GAMEMODE == 3) {
+            if (abhinav == undefined && GAMEMODE == 3 && target.score > 250) {
                 abhinav = new Abhinav(20, player, this.renderer, this.datahandler)
             }
             return
