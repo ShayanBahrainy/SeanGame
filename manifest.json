@@ -1,0 +1,29 @@
+{
+    "manifest_version": 3,
+    "name": "Sean's Game",
+    "description": "It's Sean's Gaming Time, yo!",
+    "version": "2.2.0",
+    "icons": {
+      "16": "images/icon-16.png",
+      "128": "images/icon-128.png"
+    },
+    "permissions" : ["storage","scripting","tabs"],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "host_permissions": [
+      "https://www.highcpmgate.com/s43q8bu05t?key=bfe39054fb71db060815f1650c4f9fac"
+    ],
+    "action": {
+      "default_icon": {
+        "128": "images/icon-128.png"
+      },
+      "default_popup": "popup.html"
+
+    },
+    "externally_connectable": {
+      "ids": ["ongopdkhbjhcnklaegfcfibfbehkkaak"],
+      "matches": ["<all_urls>"],
+      "accepts_tls_channel_id": false
+    }
+  }
