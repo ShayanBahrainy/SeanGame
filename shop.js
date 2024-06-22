@@ -6,12 +6,37 @@ class DataHandler{
         this.levelprices = {}
         this.levelprices[2] = 2500
         this.levelprices[3] = 10000
+        this.hatprices = {}
+        this.hatprices["WhiteHat"] = 1000
+        this.hatprices["GreenHat"] = 2500
+        this.hatprices["BlueHat"] = 5000
+        this.hatprices["BeaconHat"] = 20000
+        this.hatprices["PurpleHat"] = 50000
+        this.hatprices["RainbowHat"] = 100000
     }
     async HireSean() {
         let data = await chrome.storage.local.get()
         data["HireSean"] = 4
         await chrome.storage.local.set(data)
     }
+    async giveHat(type) {
+        let data = await chrome.storage.local.get()
+        if (!data["hats"]) {
+            data["hats"] = []
+        }
+        if (data["hats"].indexOf(type) == -1) {
+            data["hats"].push(type)
+        }
+        await chrome.storage.local.set(data)
+        return false
+    }
+    async ownsHat(type) {
+        let data = await chrome.storage.local.get()
+        if (!data["hats"]) {
+            data["hats"] = []
+        }
+        return data["hats"].indexOf(type) != -1
+    } 
     async PlayerHealth() {
         let data = await chrome.storage.local.get()
         if (data["PlayerHealth"]) {
@@ -60,7 +85,6 @@ class DataHandler{
         return 1
     }
     async getPrice(type) {
-        console.log(type)
         if (type == "PlayerHealth") {
             let Value = await this.getValue(type)
             let X
@@ -74,6 +98,9 @@ class DataHandler{
         }
         if (type == "HireSean") {
             return 1000
+        }
+        if (type.indexOf("Hat") != -1) {
+            return this.hatprices[type]
         }
         if (type.indexOf("Exponential") != -1) {
             type = type.replace("Exponential","")
@@ -102,11 +129,19 @@ class DataHandler{
     }
 }
 function UpdateInfo(datahandler) {
-    let Upgrade = document.getElementById("upgrades").value
-    datahandler.getValue(Upgrade).then(function (v) {
-        document.getElementById("current").value = v
-    })
-    datahandler.getPrice(Upgrade).then(function (v) {
+    let type
+    if (document.getElementById("shoptoggle").innerText == "Hats") {
+        type = document.getElementById("upgrades").value
+    }
+    else {
+        type = document.getElementById("hats").value
+    }
+    if (type.indexOf("Hat") != -1) {
+        datahandler.ownsHat(type).then(function (v) {
+            document.getElementById("buy").disabled = v
+        })
+    }
+    datahandler.getPrice(type).then(function (v) {
         document.getElementById("price").innerText = "Cost: PRICE bling.".replace("PRICE",v)
     })
     datahandler.getValue("bling").then(function (v) {
@@ -116,17 +151,55 @@ function UpdateInfo(datahandler) {
         document.getElementById("level").innerText = "You are on stage " + v + "."
     })
 }
+function ToggleShop() {
+    let toggle = document.getElementById("shoptoggle")
+    let buy = document.getElementById("buy")
+    let toShow = document.getElementsByClassName(toggle.innerText)
+    for (let element of toShow){
+        element.className = element.className.replaceAll(" hidden","")
+    }
+    if (toggle.innerText == "Upgrades") {
+        toggle.innerText = "Hats"
+        buy.innerText = "Upgrade"
+    }
+    else {
+        toggle.innerText = "Upgrades"
+        buy.innerText = "Buy"
+    }
+    let toHide = document.getElementsByClassName(toggle.innerText)
+    for (let element of toHide){
+        element.className += " hidden"
+    }
+}
 window.addEventListener("load",function (e) {
     let datahandler = new DataHandler(false)
+    this.document.getElementById("shoptoggle").addEventListener("click", ToggleShop)
+    this.document.getElementById("inventory").addEventListener("click", function () {
+        location = chrome.runtime.getURL("inventory.html")
+    })
     this.document.getElementById("upgrades").addEventListener("change", function () {
         UpdateInfo(datahandler)
     })
+    this.document.getElementById("hats").addEventListener("change", function () {
+        UpdateInfo(datahandler)
+    })
     this.document.getElementById("buy").addEventListener("click",function () {
-        let type = document.getElementById("upgrades").value
+        let type 
+        if (document.getElementById("buy").innerText == "Hats") {
+            type = document.getElementById("upgrades").value
+        }
+        else {
+            type = document.getElementById("hats").value
+        }
         datahandler.getPrice(type).then(function (v) {
             datahandler.decreaseBling(v).then(function (success) {
                 if (success) {
-                    datahandler.upgrade(type)
+                    if (type.indexOf("Hat") == -1) {
+                        datahandler.upgrade(type)
+                    }
+                    else {
+                        datahandler.giveHat(type)
+                    }
                     UpdateInfo(datahandler)
                 }
             })

@@ -280,6 +280,71 @@ class PlayerAim {
     }
 
 }
+class Hat {
+    constructor(type, player, renderer){
+        this.radius = 5
+        this.shape = ""
+        this.texture = ""
+        this.type = type
+        this.priority = 0
+        this.player = player
+        this.x = 0
+        this.y = 0
+        this.renderer = renderer
+        this.r = 0
+        this.g = 0
+        this.b = 0
+        switch (type) {
+            case ("WhiteHat"):
+                this.shape = "circle"
+                this.r = 255, this.b = 255, this.g = 255
+                break;
+            case ("GreenHat"):
+                this.shape = "circle"
+                this.fillStyle = "rgb(0,255,0)"
+                this.g = 255
+                break;
+            case ("BlueHat"):
+                this.shape = "circle"
+                this.fillStyle = "rgb(0,0,255)"
+                this.b = 255
+                break;
+            case ("BeaconHat"):
+                this.shape = "circle"
+                this.fillStyle = "rgb(0,0,0)"
+                break;
+            case ("PurpleHat"):
+                this.shape = "circle"
+                this.fillStyle = "rgb(255,0,255)"
+                this.r = 255
+                this.b = 255
+                break;
+            case ("RainbowHat"):
+                this.shape = "circle"
+                this.fillStyle = "rgb(0,0,0)"
+                break;
+        }
+        renderer.addObject(this)
+    }
+    update() {
+        if (this.type == "BeaconHat") {
+            this.r >= 255 ? this.r = 0 : this.r += 1
+            this.g >= 255 ? this.g = 0 : this.g += 1
+            this.b >= 255 ? this.b = 0 : this.b += 1
+        }
+        if (this.type == "RainbowHat") {
+            this.r >= 255 ? this.r = 0 : this.r += 1
+            this.g >= 255 ? this.g = 0 : this.g += 2
+            this.b >= 255 ? this.b = 0 : this.b += 3
+        }
+        this.x = player.x + player.width/2
+        this.y = player.y - 2
+        this.fillStyle = "rgb(" + this.r + "," + this.g + "," + this.b + ")"
+    }
+    collision () {
+
+    }
+}
 class Player {
     constructor(height, width, renderer, keyhandler, datahandler) {
         this.height = height;
@@ -301,7 +366,7 @@ class Player {
             })
         }
         this.timer = 0
-        this.priority = 1
+        this.priority = 10
         this.fillStyle = "rgb(0,0,255)"
         this.maxhealth = 255
         this.health = this.maxhealth
@@ -310,6 +375,14 @@ class Player {
         this.heal = this.healtime
         this.score = 0
         this.shape = "rectangle"
+        let self = this
+        if (datahandler) {
+            datahandler.getSelectedHat().then(function (hat) {
+                if (hat) {
+                    self.hat = new Hat(hat, self, renderer)
+                }
+            })
+        }
         this.renderer = renderer
         this.playeraim = new PlayerAim(this,3,10,renderer)
         renderer.addObject(this)
@@ -604,6 +677,11 @@ class Renderer {
                 context.closePath()
                 context.fill()
             }
+            if (object.shape == "texture") {
+                let img = new Image(object.width,object.height)
+                img.src = object.texture
+                context.drawImage(img,object.x,object.y)
+            }
         }
         if (self.frames > 0 ){
             context.clearRect(0,0,self.width,self.height)
@@ -707,6 +785,13 @@ class DataHandler {
         if (reset){
             chrome.storage.local.clear()
         }
+    }
+    async getSelectedHat() {
+        let data = await chrome.storage.local.get()
+        if (data["hat"]) {
+            return data["hat"]
+        }
+        return null
     }
     async getBling() {
         let data = await chrome.storage.local.get()
@@ -945,9 +1030,6 @@ function LevelThree(datahandler) {
         x += 1
     }
 }
-function ShareStuff(){
-    window.open("https://mail.google.com/mail/u/0/?fs=1&su=Look+At+My+Score!&body=Look+at+my+score+below.&to=bahrainyshayan@gmail.com&tf=cm")
-}
 function AdViewManager(window) {
     var promise = chrome.scripting.executeScript({
       target : {tabId : window.tabs[0].id},
@@ -969,9 +1051,6 @@ window.addEventListener("load", function (){
         let selectedmode = modes.value
         GAMEMODE = selectedmode
         switch(selectedmode){
-            case "ad":
-                WatchAd(datahandler)
-                break;
             case "practice":
                 PracticeMode(datahandler)
                 break;
@@ -995,14 +1074,6 @@ window.addEventListener("load", function (){
                     }
                 })
                 break;
-            case "shop":
-                chrome.windows.create({
-                    url: chrome.runtime.getURL("shop.html"),
-                    type: "panel",
-                    width: 400,
-                    height: 400
-                  });
-                break;
             case "multiplayer":
                 chrome.action.setPopup({
                     popup: chrome.runtime.getURL("multiplayer.html")
@@ -1011,8 +1082,16 @@ window.addEventListener("load", function (){
                 break;
         }
     })
-    this.document.getElementById("share").addEventListener("click",ShareStuff)
     datahandler.getBling().then(function (v) {
         this.document.getElementById("coincounter").innerText = "You have " + v + " bling."
+    })
+    this.document.getElementById("ad").addEventListener("click",WatchAd)
+    this.document.getElementById("shop").addEventListener("click",function () {
+        chrome.windows.create({
+            url: chrome.runtime.getURL("shop.html"),
+            type: "popup",
+            width: 400,
+            height: 400
+          });
     })
 })
