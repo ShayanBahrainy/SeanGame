@@ -172,7 +172,8 @@ class Abhinav {
 }
 class Sean {
     constructor(radius, player, renderer, datahandler) {
-        this.radius = radius
+        this.height = radius
+        this.width = radius
         this.x = renderer.width/2;
         this.y = 10;
         this.datahandler = datahandler
@@ -186,7 +187,8 @@ class Sean {
         this.fillStyle = "rgb(0,255,255)"
         this.maxhealth = 400
         this.health = this.maxhealth
-        this.shape = "circle"
+        this.shape = "texture"
+        this.texture = "images/sean.png"
         this.renderer = renderer
         this.player = player
         this.score = 0
@@ -246,7 +248,8 @@ class Sean {
 }
 class PlayerAim {
     constructor(player, radius, distance, renderer){
-        this.radius = radius
+        this.width = radius
+        this.height = radius
         this.renderer = renderer
         this.shape = "circle"
         this.fillStyle = "rgb(255,0,0)"
@@ -539,6 +542,7 @@ class Bullet {
             this.lifetime = 0
         }
         collidee.health -= this.damage
+        collidee.lastenemy = this.owner
         self.collided.push(collidee)
     }
 }
@@ -562,20 +566,20 @@ class Obstacle{
         this.damagetimer = this.damagetime
         this.datahandler = datahandler
         renderer.addObject(this)
-        if (!(target.score && target.reloadtime <= 30)) {
+        if (!(player.score && player.reloadtime <= 30)) {
             return
         }
-        if (200 > target.score && target.score > 100){
+        if (200 > player.score && player.score > 100){
             this.fillStyle = "rgb(255, 158, 61)"
             this.speed *= 2
             return
         }
-        if (target.score > 200 && GAMEMODE > 1) {
+        if (player.score > 200 && GAMEMODE > 1) {
             this.fillStyle = "rgb(0,255,0)"
             this.speed *= 2
             this.health *= 3
             this.killvalue = 2
-            if (abhinav == undefined && GAMEMODE == 3 && target.score > 250) {
+            if (abhinav == undefined && GAMEMODE == 3 && player.score > 250) {
                 abhinav = new Abhinav(20, player, this.renderer, this.datahandler)
             }
             return
@@ -598,7 +602,7 @@ class Obstacle{
     update(self) {
         if (this.health <= 0) {
             self.renderer.removeObject(self.renderer,self)
-            new Obstacle(10, 10, self.renderer, self.target, self.datahandler)
+            new Obstacle(10, 10, self.renderer, self.lastenemy ? self.lastenemy : self.target, self.datahandler)
         }
         if (self.target == null) {
             return;
@@ -1019,7 +1023,7 @@ function LevelThree(datahandler) {
     document.body.appendChild(canvas)
     canvas.width = 400
     canvas.height = 300
-    keyhandler = new KeyHandler(renderer)
+    keyhandler = new KeyHandler()
     renderer = new Renderer(canvas,60,canvas.width,canvas.height,keyhandler)
     player = new Player(10,10,renderer,keyhandler, datahandler)
     sean = new Sean(5,player,renderer,datahandler)
@@ -1078,7 +1082,7 @@ window.addEventListener("load", function (){
                 chrome.action.setPopup({
                     popup: chrome.runtime.getURL("multiplayer.html")
                 })
-                alert("Hint: Reopen extension to play!")
+                setTimeout(alert,3000,"Hint: Reopen extension to play!")
                 break;
         }
     })

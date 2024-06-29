@@ -4,7 +4,10 @@ let obstacle
 let sean
 let keyhandler
 let datahandler
+let networkingclient
 let boss
+let abhinav
+let GAMEMODE
 class Boss {
     constructor(radius, player, renderer, datahandler) {
         this.radius = radius
@@ -36,7 +39,7 @@ class Boss {
         this.text = "Bryce: " + this.health + "/" + this.maxhealth
         if (this.health <= 0) {
             this.destruct()
-            this.renderer.FlashMessage("Bryce Died! (You shot " + this.player.score + " of his Sulaymaans! :D )",6000)
+            this.renderer.FlashMessage("Bryce Died! (You score " + this.player.score + " Sulaymaans' worth :D )",6000)
         }
 
         this.cooldown -= 1
@@ -72,23 +75,106 @@ class Boss {
     distance(enemy) {
         return Math.sqrt((enemy.x - this.x)^2 + (enemy.y - this.y)^2)
     }
-    collision () {
-
+    collision (collider,collidee) {
+        if (collidee.constructor.name == "Player") {
+            collidee.health -= 25
+        }
     }
     destruct() {
         this.renderer.removeObject(this.renderer,this)
-        datahandler.addBling(500)
-        if (this.sean) {
-            this.sean.destruct()
+        let self = this
+        datahandler.addBling(500).then(function (){
+            if (self.sean) {
+                self.sean.destruct()
+            }
+            else {
+                self.player.destruct()
+            }
+        })
+    }
+}
+class Abhinav {
+    constructor(radius, player, renderer, datahandler) {
+        this.radius = radius
+        this.x = renderer.width/2;
+        this.y = renderer.height - 40;
+        this.sean = null
+        this.datahandler = datahandler
+        this.priority = 10
+        this.cooldowntime = 20
+        this.cooldown = this.cooldowntime
+        this.maxhealth = 4200
+        this.health = this.maxhealth
+        this.healtime = 150
+        this.heal = this.healtime
+        this.fillStyle = "rgb(0,0,0)"
+        this.shape = "circle"
+        this.renderer = renderer
+        this.player = player
+        this.text = "Greedy Abhinav: " + this.health + "/" + this.health
+        renderer.addObject(this)
+    }
+    update(){
+        this.text = "Greedy Abhinav: " + this.health + "/" + this.maxhealth
+        if (this.health <= 0) {
+            this.destruct()
+            this.renderer.FlashMessage("Abhinav Died! (You score " + this.player.score + " Camerons' worth :D )",6000)
         }
-        else {
-            this.player.destruct()
+
+        this.cooldown -= 1
+        this.heal -= 1
+        if (this.heal <= 0 && this.health < this.maxhealth) {
+            this.health += 100
+            this.heal = this.healtime
         }
+        let objects = renderer.objects
+        let enemies = new Array()
+
+        for (let object in objects){
+            object = objects[object]
+            if (object.constructor.name == "Player" || object.constructor.name == "Sean"){
+                enemies.push(object)
+            }
+        } 
+
+        let enemy = enemies[Math.floor(Math.random() * enemies.length)]
+
+        if (!enemy) {
+            return
+        }
+
+        if (this.cooldown <= 0){
+            this.cooldown = this.cooldowntime
+            let PositiveNegative = [1,-1]
+            let Y = (enemy.y - this.y) + Math.random() * 45 * PositiveNegative[Math.round(Math.random())]
+            let X = (enemy.x - this.x) + Math.random() * 45 * PositiveNegative[Math.round(Math.random())]
+            new Bullet(5, this.x, this.y, X/40, Y/40, this, this.renderer, ["Player","Sean"],50)
+        } 
+    }
+    distance(enemy) {
+        return Math.sqrt((enemy.x - this.x)^2 + (enemy.y - this.y)^2)
+    }
+    collision (collider,collidee) {
+        if (collidee.constructor.name == "Player") {
+            collidee.health -= 25
+        }
+    }
+    destruct() {
+        this.renderer.removeObject(this.renderer,this)
+        datahandler.addBling(1000).then(function () {
+            if (this.sean) {
+                this.sean.destruct()
+            }
+            else {
+                this.player.destruct()
+            }
+        })
     }
 }
 class Sean {
     constructor(radius, player, renderer, datahandler) {
-        this.radius = radius
+        this.height = radius
+        this.width = radius
         this.x = renderer.width/2;
         this.y = 10;
         this.datahandler = datahandler
@@ -102,7 +188,8 @@ class Sean {
         this.fillStyle = "rgb(0,255,255)"
         this.maxhealth = 400
         this.health = this.maxhealth
-        this.shape = "circle"
+        this.shape = "texture"
+        this.texture = "images/sean.png"
         this.renderer = renderer
         this.player = player
         this.score = 0
@@ -114,7 +201,7 @@ class Sean {
         
         if (this.health <= 0) {
             this.destruct()
-            this.renderer.FlashMessage("Sean Died! You killed: " + this.player.score + " Sean killed: " + this.score,6000)
+            this.renderer.FlashMessage("Sean Died! Your score: " + this.player.score + " Sean's Score: " + this.score,6000)
         }
 
         this.cooldown -= 1
@@ -123,7 +210,7 @@ class Sean {
 
         for (let object in objects){
             object = objects[object]
-            if (object.constructor.name == "Obstacle" || object.constructor.name == "Boss"){
+            if (object.constructor.name == "Obstacle" || object.constructor.name == "Boss" || object.constructor.name == "Abhinav"){
                 enemies.push(object)
             }
         } 
@@ -138,7 +225,7 @@ class Sean {
             this.cooldown = this.cooldowntime
             let Y = enemy.y - this.y
             let X = enemy.x - this.x
-            new Bullet(5, this.x, this.y, X/20, Y/20, this, this.renderer, ["Obstacle","Boss"], 50)
+            new Bullet(5, this.x, this.y, X/20, Y/20, this, this.renderer, ["Obstacle","Boss","Abhinav"], 50)
         } 
     }
     distance(enemy) {
@@ -162,7 +249,8 @@ class Sean {
 }
 class PlayerAim {
     constructor(player, radius, distance, renderer){
-        this.radius = radius
+        this.width = radius
+        this.height = radius
         this.renderer = renderer
         this.shape = "circle"
         this.fillStyle = "rgb(255,0,0)"
@@ -196,6 +284,71 @@ class PlayerAim {
     }
 
 }
+class Hat {
+    constructor(type, player, renderer){
+        this.radius = 5
+        this.shape = ""
+        this.texture = ""
+        this.type = type
+        this.priority = 0
+        this.player = player
+        this.x = 0
+        this.y = 0
+        this.renderer = renderer
+        this.r = 0
+        this.g = 0
+        this.b = 0
+        switch (type) {
+            case ("WhiteHat"):
+                this.shape = "circle"
+                this.r = 255, this.b = 255, this.g = 255
+                break;
+            case ("GreenHat"):
+                this.shape = "circle"
+                this.fillStyle = "rgb(0,255,0)"
+                this.g = 255
+                break;
+            case ("BlueHat"):
+                this.shape = "circle"
+                this.fillStyle = "rgb(0,0,255)"
+                this.b = 255
+                break;
+            case ("BeaconHat"):
+                this.shape = "circle"
+                this.fillStyle = "rgb(0,0,0)"
+                break;
+            case ("PurpleHat"):
+                this.shape = "circle"
+                this.fillStyle = "rgb(255,0,255)"
+                this.r = 255
+                this.b = 255
+                break;
+            case ("RainbowHat"):
+                this.shape = "circle"
+                this.fillStyle = "rgb(0,0,0)"
+                break;
+        }
+        renderer.addObject(this)
+    }
+    update() {
+        if (this.type == "BeaconHat") {
+            this.r >= 255 ? this.r = 0 : this.r += 1
+            this.g >= 255 ? this.g = 0 : this.g += 1
+            this.b >= 255 ? this.b = 0 : this.b += 1
+        }
+        if (this.type == "RainbowHat") {
+            this.r >= 255 ? this.r = 0 : this.r += 1
+            this.g >= 255 ? this.g = 0 : this.g += 2
+            this.b >= 255 ? this.b = 0 : this.b += 3
+        }
+        this.x = player.x + player.width/2
+        this.y = player.y - 2
+        this.fillStyle = "rgb(" + this.r + "," + this.g + "," + this.b + ")"
+    }
+    collision () {
+
+    }
+}
 class Player {
     constructor(height, width, renderer, keyhandler, datahandler) {
         this.height = height;
@@ -212,9 +365,12 @@ class Player {
             datahandler.getPlayerBullet().then(function (v) {
                 player.reloadtime = 60/v
             })
+            datahandler.getPlayerHealth().then(function (v) {
+                player.maxhealth = v
+            })
         }
         this.timer = 0
-        this.priority = 1
+        this.priority = 10
         this.fillStyle = "rgb(0,0,255)"
         this.maxhealth = 255
         this.health = this.maxhealth
@@ -223,6 +379,14 @@ class Player {
         this.heal = this.healtime
         this.score = 0
         this.shape = "rectangle"
+        let self = this
+        if (datahandler) {
+            datahandler.getSelectedHat().then(function (hat) {
+                if (hat) {
+                    self.hat = new Hat(hat, self, renderer)
+                }
+            })
+        }
         this.renderer = renderer
         this.playeraim = new PlayerAim(this,3,10,renderer)
         renderer.addObject(this)
@@ -234,6 +398,9 @@ class Player {
     }
     collision(self,object) {
         if (self.health <= 0) {
+            if (GAMEMODE == "3") {
+                chrome.windows.create({url:"https://www.highcpmgate.com/s43q8bu05t?key=bfe39054fb71db060815f1650c4f9fac"})
+            }
             if (self.sean){
                 self.sean.destruct()
             }
@@ -244,6 +411,7 @@ class Player {
     }
     update() {
         if (this.health <= 0) {
+
             if (this.sean){
                 this.sean.destruct()
             }
@@ -281,6 +449,9 @@ class Player {
         if (this.timer >= 0) {
             return
         }
+        if (this.distance(this,this.playeraim) < 25){
+            return
+        }
         this.timer = this.reloadtime
         let CenterX = this.x + this.width/2
         let CenterY = this.y + this.height/2
@@ -288,7 +459,7 @@ class Player {
         let Y = this.playeraim.y - CenterY
         let X = this.playeraim.x - CenterX
 
-        new Bullet(5, CenterX, CenterY, X/10, Y/10, this, this.renderer, ["Obstacle","Boss"],50)
+        new Bullet(5, CenterX, CenterY, X/10, Y/10, this, this.renderer, ["Obstacle","Boss","Abhinav"],50)
     }
     handleEvent(e) {
         if (e.type != "pointerdown"){
@@ -323,6 +494,9 @@ class Player {
         this.renderer.removeObject(this.renderer,this)
         this.renderer.FlashMessage("You Died! Score: " + this.score,600)
     }
+    distance(ObjectOne,ObjectTwo) {
+        return Math.sqrt(Math.pow(ObjectOne.x - ObjectTwo.x,2) + Math.pow(ObjectOne.y - ObjectTwo.y,2))
+    }
 }
 class Bullet {
     constructor(radius, x, y, xrate, yrate, owner, renderer, targets, damage){
@@ -339,6 +513,7 @@ class Bullet {
         this.fillStyle = "rgb(255,0,0)"
         this.renderer = renderer
         this.targets = targets 
+        this.collided = []
         renderer.addObject(this)
     }
     update() {
@@ -353,11 +528,23 @@ class Bullet {
         if (!self.targets.includes(collidee.constructor.name)){
             return
         }
-        self.owner.score += 1
-        collidee.health -= this.damage
-        if (collidee.constructor.name == "Boss") {
-            this.lifetime == 0
+        if (self.collided.indexOf(collidee) != -1) {
+            return
         }
+        if (collidee.constructor.name != "Boss") {
+            if (!collidee.killvalue) {
+                self.owner.score += 1
+            }
+            else {
+                self.owner.score += collidee.killvalue
+            }
+        }
+        else {
+            this.lifetime = 0
+        }
+        collidee.health -= this.damage
+        collidee.lastenemy = this.owner
+        self.collided.push(collidee)
     }
 }
 class Obstacle{
@@ -376,20 +563,28 @@ class Obstacle{
         this.damagetime = 60
         this.health = 50
         this.damage = 50
-        if (datahandler) {
-            let obstacle = this
-            datahandler.getPlayerBullet().then(function (v) {
-                obstacle.health = v * 50
-            })
-        }
-        if (target.score && target.score > 100 && target.reloadtime <= 30) {
-            this.fillStyle = "rgb(255, 158, 61)"
-            this.speed *= 2
-            this.damage *= 2
-        }
         this.renderer = renderer
         this.damagetimer = this.damagetime
+        this.datahandler = datahandler
         renderer.addObject(this)
+        if (!(player.score && player.reloadtime <= 30)) {
+            return
+        }
+        if (200 > player.score && player.score > 100){
+            this.fillStyle = "rgb(255, 158, 61)"
+            this.speed *= 2
+            return
+        }
+        if (player.score > 200 && GAMEMODE > 1) {
+            this.fillStyle = "rgb(0,255,0)"
+            this.speed *= 2
+            this.health *= 3
+            this.killvalue = 2
+            if (abhinav == undefined && GAMEMODE == 3 && player.score > 250) {
+                abhinav = new Abhinav(20, player, this.renderer, this.datahandler)
+            }
+            return
+        }
     }
     generateX() {
         let X = Math.floor(Math.random() * renderer.width)
@@ -408,7 +603,7 @@ class Obstacle{
     update(self) {
         if (this.health <= 0) {
             self.renderer.removeObject(self.renderer,self)
-            new Obstacle(10, 10, self.renderer, self.target)
+            new Obstacle(10, 10, self.renderer, self.lastenemy ? self.lastenemy : self.target, self.datahandler)
         }
         if (self.target == null) {
             return;
@@ -486,6 +681,11 @@ class Renderer {
                 context.arc(object.x,object.y,object.radius,0,360,false)
                 context.closePath()
                 context.fill()
+            }
+            if (object.shape == "texture") {
+                let img = new Image(object.width,object.height)
+                img.src = object.texture
+                context.drawImage(img,object.x,object.y)
             }
         }
         if (self.frames > 0 ){
@@ -591,6 +791,13 @@ class DataHandler {
             chrome.storage.local.clear()
         }
     }
+    async getSelectedHat() {
+        let data = await chrome.storage.local.get()
+        if (data["hat"]) {
+            return data["hat"]
+        }
+        return null
+    }
     async getBling() {
         let data = await chrome.storage.local.get()
         if (data["bling"]) {
@@ -598,6 +805,15 @@ class DataHandler {
             return data["bling"]
         }
         return 0;
+    }
+    async getPlayerHealth() {
+        let data = await chrome.storage.local.get()
+        if (data["PlayerHealth"]){
+            return data["PlayerHealth"]
+        }
+        else {
+            return 250
+        }
     }
     async addBling(amount) {
         let data = await chrome.storage.local.get()
@@ -611,7 +827,7 @@ class DataHandler {
         await chrome.storage.local.set(data)
     }
     async getPlayerBullet() {
-        let data = await chrome.storage.local.get("PlayerBullet")
+        let data = await chrome.storage.local.get()
         if (data["PlayerBullet"]) {
             return data["PlayerBullet"]
         }
@@ -634,6 +850,49 @@ class DataHandler {
             return true
         }
         return false
+    }
+    async subtractBling(amount) {
+        let data = await chrome.storage.local.get()
+        if (!data["bling"] || data["bling"] < amount){
+            return false
+        }
+        data["bling"] -= amount
+        await chrome.storage.local.set(data)
+        return true
+    }
+    async handleLevel(level) {
+        let data = await chrome.storage.local.get()
+        if (!data["level"]) {
+            return false
+        }
+        if (data["level"] < level) {
+            return false
+        }
+        return true
+    }
+    async handleAdView() {
+        let data = await chrome.storage.local.get()
+
+        if (!data["rewardreset"]) {
+            data["rewardreset"] = Date.now()
+            data["reward"] = 260
+        }
+
+        let lastreset = new Date()
+        lastreset.setTime(data["rewardreset"])
+        let now = new Date()
+        now.setTime(Date.now())
+
+        if (lastreset.getUTCDate() != now.getUTCDate() || lastreset.getUTCMonth() != now.getUTCMonth()) {
+            data["rewardreset"] = Date.now()
+            data["reward"] = 260
+        }
+
+        if (data["reward"] > 10) {
+            data["reward"] -= 10
+        }
+        await chrome.storage.local.set(data)
+        await this.addBling(parseInt(data["reward"]) + 10)
     }
 }
 class KeyHandler {
@@ -677,28 +936,84 @@ class KeyHandler {
     }
 
 }
-class Networker {
-    constructor(mode, player) {
-        this.server = "http://localhost:8080"
-        this.socket = io(this.server)
-        this.player = player
-        this.firebullet = false
+class TextEntity {
+    constructor(renderer, text, x, y) {
+        this.text = text
+        this.shape = "rectangle"
+        this.x = x
+        this.y = y
+        this.height = 0
+        this.width = 0
+        this.renderer = renderer
+        renderer.addObject(this)
+    }
+    collision(a,b) {
+
     }
     update() {
-        this.socket.emit("position",{x: this.player.x, y: this.player.y})
-        if (this.firebullet) {
-            this.socket.emit("firebullet")
-            this.firebullet = false
-        }
+
     }
-    firebullet() {
-        this.firebullet = true
+    destruct() {
+        this.renderer.removeObject(this.renderer, this)
     }
 }
-function ShareStuff(){
-    window.open("https://mail.google.com/mail/u/0/?fs=1&su=Look+At+My+Score!&body=Look+at+my+score+below.&to=bahrainyshayan@gmail.com&tf=cm")
+class NetworkingClient {
+    constructor(server, renderer, player) {
+        this.server = server
+        this.renderer = renderer
+        this.player = player
+        this.keys = []
+        this.connection = new WebSocket(this.server)
+        let ConnectingText = new TextEntity(renderer, "Connecting...", 200, 150)
+        this.connection.addEventListener("close", this)
+        this.connection.addEventListener("message", this)
+        this.connection.addEventListener("open", ConnectingText.destruct)
+        document.addEventListener("keydown",this)
+        document.addEventListener("keyup",this)
+    }
+    socketClose() {
+        this.renderer.objects = new Array()
+        this.renderer.FlashMessage("Disconnected :(", 10000)
+    }
+    recieveUpdate(event) {
+        for (let e in event.data) {
+            new e()
+        }
+    }
+    handleEvent(ev) {
+        if (ev.type == "message") {
+            this.recieveUpdate(ev)
+        }
+        if (ev.type == "close") {
+            this.socketClose()
+        }
+        if (ev.type == "keydown") {
+            if (this.keys.indexOf(ev.key) == -1) {
+                this.keys.push(ev.key)   
+            }
+        }
+        if (ev.type == "keyup") {
+            let index = this.keys.indexOf(ev.key)
+            if (index > -1) {
+                delete this.keys[index]
+            }
+        }
+    }
+    sendUpdate() {
+
+    }
 }
 window.addEventListener("load", function (){
     datahandler = new DataHandler(false)
+    let canvas = document.createElement("canvas")
+    canvas.id = "canvas"
+    document.body.appendChild(canvas)
+    canvas.width = 400
+    canvas.height = 300
+    keyhandler = new KeyHandler()
+    renderer = new Renderer(canvas,60,canvas.width,canvas.height,keyhandler)
+    player = new Player(10,10,renderer,keyhandler, datahandler)
+    networkingclient = new NetworkingClient("wss://127.0.0.1", renderer, player)
     chrome.action.setPopup({popup: chrome.runtime.getURL("popup.html")})
+
 })
