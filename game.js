@@ -172,8 +172,7 @@ class Abhinav {
 }
 class Sean {
     constructor(radius, player, renderer, datahandler) {
-        this.height = radius
-        this.width = radius
+        this.radius = radius
         this.x = renderer.width/2;
         this.y = 10;
         this.datahandler = datahandler
@@ -248,8 +247,7 @@ class Sean {
 }
 class PlayerAim {
     constructor(player, radius, distance, renderer){
-        this.width = radius
-        this.height = radius
+        this.radius = radius
         this.renderer = renderer
         this.shape = "circle"
         this.fillStyle = "rgb(255,0,0)"

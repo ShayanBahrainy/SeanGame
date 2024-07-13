@@ -15,7 +15,7 @@
       "default_icon": {
         "128": "images/icon-128.png"
       },
-      "default_popup": "popup.html"
+      "default_popup": "multiplayer.html"
 
     },
     "externally_connectable": {
