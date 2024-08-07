@@ -40,10 +40,10 @@ class game {
       this.server.on('connection', this.newClient)
       this.enemies = []
       this.playeronly = {}
-      new GuardObstacle(10, 10, this, 0, 0, this.width, 'x')
-      new GuardObstacle(10, 10, this, 0, 0, this.height, 'y')
-      new GuardObstacle(10, 10, this, this.width/2, this.height/2, -this.height, 'y')
-      new GuardObstacle(10, 10, this, this.width/2, this.height/2, -this.width, 'x')
+      new GuardObstacle(10, 10, this, 0, 0, Game.width, 'x')
+      new GuardObstacle(10, 10, this, 0, 0, Game.height, 'y')
+      new GuardObstacle(10, 10, this, Game.width, Game.height, -Game.height, 'y')
+      new GuardObstacle(10, 10, this, Game.width, Game.height, -Game.width, 'x')
   }
   static withDelay(time, fps, previousmessage) {
     let server = new WebSocketServer.Server({port: 690})

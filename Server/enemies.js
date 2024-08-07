@@ -119,6 +119,7 @@ class guardobstacle{
         renderer.addObject(this)
     }7
     update(self) {
+        const dir = self.movedistance < 0 ? -1 : 1
         if (self.health <= 0) {
             self.renderer.removeObject(self.renderer,self)
             new GuardObstacle(10, 10, self.renderer, self.lastenemy ? self.lastenemy : self.target)
@@ -127,7 +128,7 @@ class guardobstacle{
         let axispos = self.axis == 'x' ? self.x : self.y
         let startpos = self.axis == 'x' ? self.startx : self.starty
 
-        if ( (startpos + self.movedistance <= axispos) || (axispos < startpos) ) {
+        if ( ( dir * (startpos + self.movedistance) <= axispos * dir) || ( dir * axispos < startpos * dir) ) {
             self.movedirection *= -1
         }
 
