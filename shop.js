@@ -28,6 +28,7 @@ class DataHandler{
             data["hats"].push(type)
         }
         await chrome.storage.local.set(data)
+        UpdateInfo(this)
         return false
     }
     async ownsHat(type) {
@@ -61,6 +62,7 @@ class DataHandler{
             data[type] = Value
             await chrome.storage.local.set(data)
         }
+        UpdateInfo(this)
     }
     async decreaseBling(amount) {
         let data = await chrome.storage.local.get()
@@ -118,6 +120,7 @@ class DataHandler{
         }
         data["level"] += 1
         await chrome.storage.local.set(data)
+        UpdateInfo(this)
         return true
     }
     async getLevel() {
@@ -171,11 +174,18 @@ function ToggleShop() {
         element.className += " hidden"
     }
 }
+function openPage(page) {
+    chrome.runtime.sendMessage({type:"open", page:page}, function (response) {
+        if (response.type == "close") {
+            window.close()
+        }
+    })
+}
 window.addEventListener("load",function (e) {
     let datahandler = new DataHandler(false)
     this.document.getElementById("shoptoggle").addEventListener("click", ToggleShop)
     this.document.getElementById("inventory").addEventListener("click", function () {
-        location = chrome.runtime.getURL("inventory.html")
+        openPage("inventory.html")
     })
     this.document.getElementById("upgrades").addEventListener("change", function () {
         UpdateInfo(datahandler)
@@ -185,7 +195,7 @@ window.addEventListener("load",function (e) {
     })
     this.document.getElementById("buy").addEventListener("click",function () {
         let type 
-        if (document.getElementById("buy").innerText == "Hats") {
+        if (document.getElementById("shoptoggle").innerText == "Hats") {
             type = document.getElementById("upgrades").value
         }
         else {

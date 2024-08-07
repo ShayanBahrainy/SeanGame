@@ -1,2 +1,2 @@
 import {Game} from './server.js'
-let game = new Game(60)
+Game.withDelay(5, 60) 

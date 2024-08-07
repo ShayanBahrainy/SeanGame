@@ -125,7 +125,7 @@ class NetworkingClient {
         this.width = width
         this.height = height
         this.canvas = canvas
-
+        this.checkinterval = setInterval(this.checkConnection, 100, this)
         this.keys = []
         this.mousex = 0
         this.mousestate = false
@@ -138,6 +138,7 @@ class NetworkingClient {
         this.connection.addEventListener("close", this)
         this.connection.addEventListener("message", this)
         this.connection.addEventListener("open", this)
+        this.connection.addEventListener("error", this)
 
         document.addEventListener("mousemove",this)
         document.addEventListener("pointerdown",this)
@@ -145,9 +146,30 @@ class NetworkingClient {
         document.addEventListener("keydown",this)
         document.addEventListener("keyup",this)
     }
-    socketClose() {
+    socketClose(saveStatus) {
         clearInterval(this.tick)
-        this.statustext = "Disconnected :("
+        clearInterval(this.checkinterval)
+        this.clearListeners()
+        if (!saveStatus) {
+            this.statustext = "Disconnected :("
+        }
+    }
+    checkConnection () {
+        if (!self.connection) {
+            return
+        }
+        let Time = new Date().getTime()
+        if (self.connection.readyState > WebSocket.CONNECTING && (Time - self.lastMessage > 3000)) {
+            self.connection.close()
+            self.socketClose()
+        }
+    }
+    clearListeners() {
+        document.removeEventListener("mousemove",this)
+        document.removeEventListener("pointerdown",this)
+        document.removeEventListener("pointerup", this)
+        document.removeEventListener("keydown",this)
+        document.removeEventListener("keyup",this)
     }
     draw(data) {
         const context = this.canvas.getContext("2d")
@@ -179,7 +201,7 @@ class NetworkingClient {
         } 
     }
     set statustext(value) {
-        this.value = value
+        this._statustext = value
         const context = this.canvas.getContext("2d")
         context.clearRect(0,0,this.width,this.height)
         context.font = "18px Times New Roman"
@@ -189,8 +211,29 @@ class NetworkingClient {
         context.fillText(value,this.width/2,this.height/2)
         
     }
-    recieveUpdate(data) {
-        this.draw(data)
+
+    reconnect(self) {
+        networkingclient = new NetworkingClient(self.server, self.canvas, self.width, self.height)
+    }
+
+    recieveUpdate(request) {
+        if (request.type == "frame") {
+            this.draw(request.data)
+        }
+        if (request.type == "kick") {
+            this.statustext = request.reason
+            this.clearListeners()
+        }
+        if (request.type == "reconnect") {
+            setTimeout(this.reconnect, request.time, this)
+            this.socketClose(true)
+            this.connection.close()
+            this.connection.removeEventListener("close", this)
+            this.connection.removeEventListener("message", this)
+            this.connection.removeEventListener("open", this)
+            this.connection.removeEventListener("error", this)
+            this.statustext = "Reconnecting..."
+        }
     }
     handleEvent(ev) {
         if (ev.type == "pointerdown") {
@@ -207,12 +250,16 @@ class NetworkingClient {
         }
         if (ev.type == "message") {
             this.recieveUpdate(JSON.parse(ev.data))
+            this.lastMessage = new Date().getTime()
         }
         if (ev.type == "open") {
             this.statustext = ""
             this.tick = setInterval(this.sendUpdate, 1000/60, this)
         }
         if (ev.type == "close") {
+            this.socketClose()
+        }
+        if (ev.type == "error") {
             this.socketClose()
         }
         if (ev.type == "keydown") {
@@ -233,13 +280,11 @@ class NetworkingClient {
             MousePos: {X: self.mousex, Y: self.mousey},
             MouseState: self.mousestate
         }
-        setTimeout(function () {
-            self.connection.send(JSON.stringify(Input))
-        },1)
+        self.connection.send(JSON.stringify(Input))
     }
 }
 window.addEventListener("load", function (){
-    //chrome.action.setPopup({popup: chrome.runtime.getURL("popup.html")})
+    chrome.action.setPopup({popup:"popup.html"})
     datahandler = new DataHandler(false)
     let canvas = document.createElement("canvas")
     canvas.id = "canvas"
@@ -247,5 +292,5 @@ window.addEventListener("load", function (){
     canvas.width = 400
     canvas.height = 300
     networkingclient = new NetworkingClient("ws://127.0.0.1:80", canvas, 400, 300)
-
+    this.window.networkingclient = networkingclient
 })

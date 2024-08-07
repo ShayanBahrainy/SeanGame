@@ -4,12 +4,24 @@ import {TypedJSON} from 'typedjson'
 import {readFile} from 'node:fs/promises'
 
 import {Player} from './player.js'
-import {Obstacle} from './enemies.js'
-import {setTimeout} from 'node:timers/promises';
+import {GuardObstacle, Obstacle} from './enemies.js'
+import {Sean} from './sean.js'
+
 import { timeStamp } from 'node:console'
 
+import { ClientServer } from './client-server.js'
+
+import {createServer} from 'http'
+
+import pkg from 'greenlock-express';
+import { readFileSync } from 'node:fs'
+
+const {init} = pkg;
+
 class game {
-  constructor(fps) {
+    static width = 1280
+    static height = 720
+  constructor(fps, server) {
       this.objects = new Array()
       this.message = null
       this.frames = -1
@@ -22,15 +34,57 @@ class game {
         V = V.toString()
         self.names = V.split("\n")
       })
-      this.server = new WebSocketServer.Server({
-        port: 80
-      });
+      this.server = server ? server : new WebSocketServer.Server({
+        port: 690
+      })
       this.server.on('connection', this.newClient)
-      this.width = 400
-      this.height = 400
       this.enemies = []
       this.playeronly = {}
+      new GuardObstacle(10, 10, this, 0, 0, this.width, 'x')
+      new GuardObstacle(10, 10, this, 0, 0, this.height, 'y')
+      new GuardObstacle(10, 10, this, this.width/2, this.height/2, -this.height, 'y')
+      new GuardObstacle(10, 10, this, this.width/2, this.height/2, -this.width, 'x')
   }
+  static withDelay(time, fps, previousmessage) {
+    let server = new WebSocketServer.Server({port: 690})
+    function newClient(socket) {
+        let r =  {}
+        let message = 'Game starting in ' + time + ' seconds'
+        let text = {type: 'text', text: (previousmessage ? previousmessage + message : message), x: this.width/2, y: this.height/2}
+        r.type = "frame"
+        r.data = [text]
+        socket.send(JSON.stringify(r))
+    }
+    server.on('connection', newClient)
+    function sendFrame(socket) {
+        let message = 'Game starting in ' + time + ' seconds'
+        let text = {type: 'text', text: (previousmessage ? previousmessage + message : message), x: game.width/2, y: game.height/2}
+        let r = {}
+        r.type = "frame"
+        r.data = [text]
+        socket.send(JSON.stringify(r))
+    }
+    function sendReconnect(socket) {
+        let r = {}
+        r.type = "reconnect"
+        r.time = 5 * 1000
+        socket.send(JSON.stringify(r))
+    }
+    function sendAll() {
+        time -= 1
+        server.clients.forEach(sendFrame)
+        if (time > 0) {
+            setTimeout(sendAll, 1000)
+        }
+        else {
+            server.clients.forEach(sendReconnect)
+            server.off('connection', newClient)
+            return new game(fps, server)
+        }
+    }
+    setTimeout(sendAll, 1000)
+  }
+
   getRenderables() {
     let renderObjects = game.sortObjects(this.objects)
     let data = []
@@ -66,10 +120,15 @@ class game {
   getPlayerRenderables(remoteAddress) {
     let renderObjects = this.playeronly[remoteAddress]
     let data = []
+    let dominant  
     for (let key in renderObjects) {
         let object = renderObjects[key] 
         if (Object.hasOwn(object, "text")){
             let text = {type: "text", text: object.text, x: object.x, y: object.y + 20}
+            if (object.isdominant) {
+                dominant = text
+                dominant.dominant = true
+            }
             data.push(text)
         }
         let render = {}
@@ -93,20 +152,40 @@ class game {
         }
         data.push(render)
     }
+    if (dominant) {
+        return [dominant]
+    }
     return data
   }
   sendUpdate() {
     let data = this.getRenderables()
-    setTimeout(100, this).then(function (self) {
-        for (let name in self.clients) {
-            let socket = self.clients[name]
-            let playerdata = self.getPlayerRenderables(socket.remoteAddress)
-            socket.send(JSON.stringify(playerdata.concat(data)))
+    for (let name in this.clients) {
+        let socket = this.clients[name]
+        let playerdata = this.getPlayerRenderables(game.getRemoteAddress(socket))
+        let request = {
+            type : "frame",
+            data : playerdata.concat(data)
         }
-    })
+        for (let key in request.data) {
+            let value = request.data[key]
+            if (value.dominant) {
+                request.data = [value]
+                break
+            }
+        }
+        socket.send(JSON.stringify(request))
+    }
+  }
+  sendKick(socket, reason) {
+    let request = {
+        type : "kick",
+        reason : reason
+    }
+    socket.send(JSON.stringify(request))
+    socket.close()
   }
   newClient(socket, request) {
-    let remoteAddress = this.getRemoteAddress(socket)
+    let remoteAddress = game.getRemoteAddress(socket)
     let name = game.instance.generateName()
     game.instance.clients[name] = socket
     game.instance.playeronly[remoteAddress] = []
@@ -125,11 +204,11 @@ class game {
         game.instance.handleInput(socket, data)
     })
   }
-  getRemoteAddress(socket) {
+  static getRemoteAddress(socket) {
     return socket._socket.remoteAddress + ':' + socket._socket.remotePort
   }
   handleInput(socket, data) {
-    this.playerobjects[this.getRemoteAddress(socket)].handleInput(data)
+    this.playerobjects[game.getRemoteAddress(socket)].handleInput(data)
   }
   generateName() {
     let availablenames = this.names
@@ -140,6 +219,7 @@ class game {
   }
   destruct() {
       clearInterval(this.intervalId)
+      this.server.close()
   }
   tick(self) {
       self.collisonChecks(self)
@@ -155,7 +235,27 @@ class game {
             object.update(object)
         }
       }
+      let winner = self.isWinner()
+      if (winner) {
+        for (let name in self.clients) {
+            let r = {}
+            r.type = "reconnect"
+            r.time = .5 * 1000
+            self.clients[name].send(JSON.stringify(r))
+            self.server.close()
+            clearInterval(self.intervalId)
+            game.withDelay(60, 60, winner + "won! ")
+        }
+      }
       self.sendUpdate()
+  }
+  isWinner() {
+    for (let remoteAddress in this.playerobjects) {
+        if (this.playerobjects[remoteAddress].score >= 500) {
+            return this.playerobjects[remoteAddress].text
+        }
+    }
+    return false
   }
   collisonChecks(self) {
       let cewidth 
@@ -246,4 +346,21 @@ class game {
       return sorted
   }
 }
+/*
+init({
+    packageRoot: './',
+    configDir: "./greenlock.d",
+
+    // contact for security and critical bug notices
+    maintainerEmail: "shayan@aurorii.com",
+
+    // whether or not to run at cloudscale
+    cluster: false
+}).serve(ClientServer)
+*/
+const key = readFileSync("server.key")
+const cert = readFileSync("server.cert")
+const server = createServer(ClientServer)
+server.listen(80)
+
 export const Game = game

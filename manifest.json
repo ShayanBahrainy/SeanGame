@@ -3,6 +3,7 @@
     "name": "Sean's Game",
     "description": "It's Sean's Gaming Time, yo!",
     "version": "2.3.0",
+    "omnibox" : {"keyword" : "sean"},
     "icons": {
       "16": "images/icon-16.png",
       "128": "images/icon-128.png"
@@ -15,7 +16,7 @@
       "default_icon": {
         "128": "images/icon-128.png"
       },
-      "default_popup": "multiplayer.html"
+      "default_popup": "popup.html"
 
     },
     "externally_connectable": {

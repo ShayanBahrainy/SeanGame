@@ -38,7 +38,17 @@ function UpdateInventory(hats){
         container.appendChild(img)
     }
 }
+function openPage(page) {
+    chrome.runtime.sendMessage({type:"open", page:page}, function (response) {
+        if (response.type == "close") {
+            window.close()
+        }
+    })
+}
 window.addEventListener("load",function () {
     datahandler = new DataHandler(false)
     datahandler.getHats().then(UpdateInventory)
+    this.document.getElementById("backbutton").addEventListener("click", function (ev) {
+        openPage("shop.html")
+    })
 })

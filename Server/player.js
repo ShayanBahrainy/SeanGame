@@ -1,15 +1,16 @@
 import {PlayerText} from './text.js'
+import { Game } from './server.js';
 class player {
     constructor(height, width, renderer, remoteAddress) {
         this.height = height;
         this.width = width;
         this.remoteAddress = remoteAddress
         this.sean = null
-        this.x = renderer.width/2;
+        this.x = Game.width/2;
         this.sidedirection = 0
         this.updirection = 0
-        this.y = renderer.height/2;
-        this.reloadtime = 60
+        this.y = Game.height/2;
+        this.reloadtime = 60 
         this.timer = 0
         this.priority = 10
         this.fillStyle = "rgb(0,0,255)"
@@ -19,6 +20,7 @@ class player {
         this.healtime = 600
         this.heal = this.healtime
         this.score = 0
+        this.scoretext = new PlayerText(renderer, "0", remoteAddress, (Game.width/10) * 9, 0, false)
         this.shape = "rectangle" 
         this.renderer = renderer
         this.playeraim = new playeraim(this,3,10,renderer,remoteAddress)
@@ -28,29 +30,32 @@ class player {
         this.reloadtime = v
     }
     collision(self,object) {
-        if (self.health <= 0) {
+        return
+        if (self.health <= 0 && !self.paused) {
             if (self.sean){
                 self.sean.destruct()
             }
             else {
-                self.destruct()
+                self.pause()
             }
         }
     }
     update() {
-        if (this.health <= 0) {
-
-            if (this.sean){
-                this.sean.destruct()
-            }
-            else {
-                this.destruct()
-            }
+        if (this.health <= 0 && !this.paused) {
+            this.pause()
         }
+        if (this.paused && this.pausetimer <= 0) {
+            this.unpause()
+        }
+        if (this.paused && this.pausetimer > 0){
+            this.pausetimer -= 1
+            this.pausetext.text = "You died! Rejoining in " + Math.round(this.pausetimer/60) + " seconds."
+        }
+        this.scoretext.text = this.score
         const XBorderOne = 0
-        const XBorderTwo = XBorderOne + this.renderer.width
+        const XBorderTwo = XBorderOne + Game.width
         const YBorderOne = 0
-        const YBorderTwo = YBorderOne + this.renderer.height
+        const YBorderTwo = YBorderOne + Game.height
 
         if (this.x < XBorderOne){
             this.x = XBorderTwo
@@ -86,9 +91,12 @@ class player {
         let Y = this.playeraim.y - CenterY
         let X = this.playeraim.x - CenterX
 
-        new bullet(5, CenterX, CenterY, X/10, Y/10, this, this.renderer, ["obstacle","boss","abhinav"],50)
+        new bullet(5, CenterX, CenterY, X/20, Y/20, this, this.renderer, ["obstacle","boss","abhinav"],50)
     }
     handleInput(data) {
+        if (this.paused) {
+            return
+        }
         this.playeraim.handleInput(data)
         let keys = data.Keys
         if (data.MouseState) {
@@ -114,15 +122,25 @@ class player {
         }
     }
     destruct() {
-        let remoteAddress = this.remoteAddress
         this.playeraim.destruct()
-        let playertext = new PlayerText(this.renderer, "You died!", remoteAddress)
+        this.renderer.removeObject(this.renderer, this)
+        delete this
+    }
+    pause() {
+        let seconds = 10
+        this.pausetext = new PlayerText(this.renderer, this.text + " (You) died! Rejoining in" + seconds + " seconds", this.remoteAddress, Game.width/2, Game.height/2, true)
+        this.paused = true
+        this.pausetimer = 60 * 10
+    }
+    unpause() {
+        this.paused = false
+        this.pausetext.destruct()
+        delete this.pausetext
+        delete this.health
         let self = this
         setTimeout(function () {
-            playertext.destruct()
-            let name = self.renderer.playerobjects[remoteAddress].text
-            self.renderer.clients[name].close()
-        }, 1000)
+            self.health = self.maxhealth
+        }, 3000)
     }
     distance(ObjectOne,ObjectTwo) {
         return Math.sqrt(Math.pow(ObjectOne.x - ObjectTwo.x,2) + Math.pow(ObjectOne.y - ObjectTwo.y,2))
@@ -153,6 +171,7 @@ class bullet {
         }
         this.x += this.xrate
         this.y += this.yrate
+        this.radius += .05
     } 
     collision(self, collidee) {
         if (!self.targets.includes(collidee.constructor.name)){

@@ -7,6 +7,9 @@ let datahandler
 let boss
 let abhinav
 let GAMEMODE
+let Config = {
+    MultiplayerClient: "local"
+}
 class Boss {
     constructor(radius, player, renderer, datahandler) {
         this.radius = radius
@@ -381,6 +384,30 @@ class Player {
             datahandler.getSelectedHat().then(function (hat) {
                 if (hat) {
                     self.hat = new Hat(hat, self, renderer)
+                    switch(hat) {
+                        case "WhiteHat":
+                            self.healtime = self.healtime/1.25
+                            break;
+                        case "GreenHat":
+                            self.speed *= 1.5
+                            break;
+                        case "BlueHat":
+                            self.setBulletSpeed(self.reloadtime/2)
+                            break;
+                        case "BeaconHat":
+                            self.healtime/3
+                            break;
+                        case "PurpleHat":
+                            self.healtime/2.5
+                            self.speed *= 1.5
+                            break;
+                        case "RainbowHat":
+                            self.healtime/2.5
+                            self.speed *= 1.5
+                            self.setBulletSpeed(self.reloadtime/1.5)
+                            break;
+                    }
+                    console.log(hat)
                 }
             })
         }
@@ -519,7 +546,7 @@ class Bullet {
             this.renderer.removeObject(this.renderer,this)
         }
         this.x += this.xrate
-        this.y += this.yrate
+        this.y += this.yrate 
     } 
     collision(self, collidee) {
         if (!self.targets.includes(collidee.constructor.name)){
@@ -1032,19 +1059,12 @@ function LevelThree(datahandler) {
         x += 1
     }
 }
-function AdViewManager(window) {
-    var promise = chrome.scripting.executeScript({
-      target : {tabId : window.tabs[0].id},
-      files : ["adview.js"],
-      injectImmediately: true,
+function openPage(page) {
+    chrome.runtime.sendMessage({type:"open", page:page}, function (response) {
+        if (response.type == "close") {
+            window.close()
+        }
     })
-    promise.then(datahandler.handleAdView())
-}
-function WatchAd(datahandler) {
-    let AD_URL = "https://www.highcpmgate.com/s43q8bu05t?key=bfe39054fb71db060815f1650c4f9fac"
-    chrome.windows.create({
-        url: AD_URL
-    },AdViewManager);
 }
 window.addEventListener("load", function (){
     datahandler = new DataHandler(false)
@@ -1067,6 +1087,9 @@ window.addEventListener("load", function (){
                     if (v) {
                         LevelTwo(datahandler)
                     }
+                    else {
+                        alert("You don't own this level! Buy it from the shop.")
+                    }
                 })
                 break;
             case "3":
@@ -1074,26 +1097,25 @@ window.addEventListener("load", function (){
                     if (v) {
                         LevelThree(datahandler)
                     }
+                    else {
+                        alert("You don't own this level! Buy it from the shop.")
+                    }
                 })
                 break;
             case "multiplayer":
-                chrome.action.setPopup({
-                    popup: chrome.runtime.getURL("multiplayer.html")
-                })
-                setTimeout(alert,3000,"Hint: Reopen extension to play!")
+                if (Config.MultiplayerClient != "local") {
+                    window.open(Config.MultiplayerClient)
+                }
+                else {
+                    openPage("multiplayer.html")
+                }
                 break;
         }
     })
     datahandler.getBling().then(function (v) {
         this.document.getElementById("coincounter").innerText = "You have " + v + " bling."
     })
-    this.document.getElementById("ad").addEventListener("click",WatchAd)
     this.document.getElementById("shop").addEventListener("click",function () {
-        chrome.windows.create({
-            url: chrome.runtime.getURL("shop.html"),
-            type: "popup",
-            width: 400,
-            height: 400
-          });
+        openPage("shop.html")
     })
 })
