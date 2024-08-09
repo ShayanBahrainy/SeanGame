@@ -49,8 +49,11 @@ class obstacle{
     }
     update(self) {
         if (this.health <= 0) {
+            this.killvalue ? self.lastenemy.score += this.killvalue : self.lastenemy.score += 1
             self.renderer.removeObject(self.renderer,self)
-            new Obstacle(10, 10, self.renderer, self.lastenemy ? self.lastenemy : self.target)
+            if (Game.instance.enemies.length <= Game.enemiesperplayer * Game.instance.clients.length) {
+                new Obstacle(10, 10, self.renderer, self.lastenemy ? self.lastenemy : self.target)
+            }
         }
         if (self.target == null) {
             return;
@@ -112,27 +115,23 @@ class guardobstacle{
         this.starty = y
         this.movedistance = movedistance
         this.movedirection = 1
-        if (movedistance < 0) {
-            this.movedirection = -1
-        }
         this.axis = axis
         renderer.addObject(this)
     }7
     update(self) {
-        const dir = self.movedistance < 0 ? -1 : 1
-        if (self.health <= 0) {
-            self.renderer.removeObject(self.renderer,self)
-            new GuardObstacle(10, 10, self.renderer, self.lastenemy ? self.lastenemy : self.target)
-        }
 
         let axispos = self.axis == 'x' ? self.x : self.y
         let startpos = self.axis == 'x' ? self.startx : self.starty
 
-        if ( ( dir * (startpos + self.movedistance) <= axispos * dir) || ( dir * axispos < startpos * dir) ) {
+        if ( ( startpos + self.movedistance) <= axispos  || axispos < startpos ) {
             self.movedirection *= -1
         }
 
-        self.axis == 'x' ? self.x += 1 * self.movedirection : self.y += 1 * self.movedirection
+        if ((( startpos - self.movedistance) >= axispos  || axispos > startpos ) && self.movedistance < 0) {
+            self.movedirection *= -1
+        }
+
+        self.axis == 'x' ? self.x += 2 * self.movedirection : self.y += 2 * self.movedirection
 
         self.damagetimer -= 1
     }

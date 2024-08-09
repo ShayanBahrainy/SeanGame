@@ -21,12 +21,14 @@ const {init} = pkg;
 class game {
     static width = 1280
     static height = 720
+    static enemiesperplayer = 5
   constructor(fps, server) {
       this.objects = new Array()
       this.message = null
       this.frames = -1
-      this.clients = {}
+      this.clients = []
       this.playerobjects = {}
+      this.packettimes = {}
       game.instance = this
       this.intervalId = setInterval(this.tick,Math.round(1000/fps),this)
       let self = this
@@ -42,8 +44,8 @@ class game {
       this.playeronly = {}
       new GuardObstacle(10, 10, this, 0, 0, Game.width, 'x')
       new GuardObstacle(10, 10, this, 0, 0, Game.height, 'y')
-      new GuardObstacle(10, 10, this, Game.width, Game.height, -Game.height, 'y')
-      new GuardObstacle(10, 10, this, Game.width, Game.height, -Game.width, 'x')
+      new GuardObstacle(10, 10, this, Game.width, 0, Game.height, 'y')
+      new GuardObstacle(10, 10, this, 0, Game.height, Game.width, 'x')
   }
   static withDelay(time, fps, previousmessage) {
     let server = new WebSocketServer.Server({port: 690})
@@ -67,7 +69,7 @@ class game {
     function sendReconnect(socket) {
         let r = {}
         r.type = "reconnect"
-        r.time = 5 * 1000
+        r.time = 2.5 * 1000
         socket.send(JSON.stringify(r))
     }
     function sendAll() {
@@ -176,6 +178,13 @@ class game {
         socket.send(JSON.stringify(request))
     }
   }
+  sendBling(socket, amount) {
+    let request = {
+        type : "bling",
+        amount : amount
+    }
+    socket.send(JSON.stringify(request))
+  }
   sendKick(socket, reason) {
     let request = {
         type : "kick",
@@ -187,17 +196,17 @@ class game {
   newClient(socket, request) {
     let remoteAddress = game.getRemoteAddress(socket)
     let name = game.instance.generateName()
-    game.instance.clients[name] = socket
+    game.instance.clients.push(socket)
     game.instance.playeronly[remoteAddress] = []
-    game.instance.playerobjects[remoteAddress] = new Player(10, 10, game.instance, remoteAddress)
-    game.instance.playerobjects[remoteAddress].text = name
-    while (game.instance.enemies.length < 3) {
+    game.instance.playerobjects[remoteAddress] = new Player(10, 10, game.instance, remoteAddress, name)
+    game.instance.packettimes[remoteAddress] = new Date().getTime()
+    while (game.instance.enemies.length < game.enemiesperplayer * game.instance.clients.length) {
         game.instance.enemies.push(new Obstacle(10, 10, game.instance, game.instance.playerobjects[remoteAddress]))
     }
     socket.on('close', function() {
         game.instance.playerobjects[remoteAddress].destruct()
         delete game.instance.playerobjects[remoteAddress]
-        delete game.instance.clients[socket]
+        game.instance.clients.splice(game.instance.clients.indexOf(socket),1)
     });
     socket.on('message', function (data) {
         data = JSON.parse(data)
@@ -209,6 +218,7 @@ class game {
   }
   handleInput(socket, data) {
     this.playerobjects[game.getRemoteAddress(socket)].handleInput(data)
+    this.packettimes[game.getRemoteAddress(socket)] = new Date().getTime()
   }
   generateName() {
     let availablenames = this.names
@@ -220,6 +230,15 @@ class game {
   destruct() {
       clearInterval(this.intervalId)
       this.server.close()
+  }
+  connectionChecker() {
+    let currentTime = new Date().getTime()
+    for (let name in this.clients) {
+        let socket = this.clients[name]
+        if (currentTime - this.packettimes[game.getRemoteAddress(socket)] > 3000) {
+            socket.terminate()
+        }
+    }
   }
   tick(self) {
       self.collisonChecks(self)
@@ -241,18 +260,24 @@ class game {
             let r = {}
             r.type = "reconnect"
             r.time = .5 * 1000
+            if (self.playerobjects[Game.getRemoteAddress(self.clients[name])] == winner && self.clients.length >= 2) {
+                self.sendBling(self.clients[name], 3000)
+            }
             self.clients[name].send(JSON.stringify(r))
-            self.server.close()
-            clearInterval(self.intervalId)
-            game.withDelay(60, 60, winner + "won! ")
+            self.clients[name].close()
         }
+        self.server.close(function () {
+            game.withDelay(60, 60, winner.text + "won! ")
+        })
+        clearInterval(self.intervalId)
       }
       self.sendUpdate()
+      self.connectionChecker()
   }
   isWinner() {
     for (let remoteAddress in this.playerobjects) {
-        if (this.playerobjects[remoteAddress].score >= 500) {
-            return this.playerobjects[remoteAddress].text
+        if (this.playerobjects[remoteAddress].score >= 50) {
+            return this.playerobjects[remoteAddress]
         }
     }
     return false

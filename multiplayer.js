@@ -291,6 +291,6 @@ window.addEventListener("load", function (){
     document.body.appendChild(canvas)
     canvas.width = 400
     canvas.height = 300
-    networkingclient = new NetworkingClient("ws://127.0.0.1:80", canvas, 400, 300)
+    networkingclient = new NetworkingClient("ws://127.0.0.1:690", canvas, 400, 300)
     this.window.networkingclient = networkingclient
 })

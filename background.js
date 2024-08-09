@@ -1,6 +1,26 @@
 let MultiPlayerSuggestion = {description:"Play Multiplayer!", content:"Multiplayer Please!"}
 let SinglePlayerSuggestion = {description:"Play Singleplayer!", content:"Singleplayer Please!"}
 let DefaultSuggestion = {description: "Play Singleplayer!"}
+
+class DataHandler {
+    constructor(reset) {
+        if (reset){
+            chrome.storage.local.clear()
+        }
+    }
+    async addBling(amount) {
+        let data = await chrome.storage.local.get()
+        if (data["bling"]){
+            data["bling"] = parseInt(data["bling"])
+            data["bling"] += amount
+        }
+        else {
+            data["bling"] = amount
+        }
+        await chrome.storage.local.set(data)
+    }
+}
+
 chrome.omnibox.setDefaultSuggestion(DefaultSuggestion)
 chrome.omnibox.onInputChanged.addListener(function (text, suggest) {
     if (isMultiplayer(text)) {
@@ -33,5 +53,10 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
     if (message.type == "open") {
         sendResponse({type:"close"})
         setTimeout(openPage, 500, message.page)
+    }
+})
+chrome.runtime.onMessageExternal.addListener(function (message, sender, sendResponse) {
+    if (message.type == "bling") {
+        datahandler.addBling(message.amount)
     }
 })

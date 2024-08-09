@@ -234,6 +234,10 @@ class NetworkingClient {
             this.connection.removeEventListener("error", this)
             this.statustext = "Reconnecting..."
         }
+        if (request.type == "bling") {
+            var editorExtensionId = "cjklkcpgnmdcnkepkndbmnajaibdmcaj"
+            chrome.runtime.sendMessage(editorExtensionId, {type:"bling", amount:amount})
+        }
     }
     handleEvent(ev) {
         if (ev.type == "pointerdown") {
@@ -293,3 +297,6 @@ window.addEventListener("load", function (){
     networkingclient = new NetworkingClient("ws://127.0.0.1:690", canvas, window.innerWidth, window.innerHeight)
     this.window.networkingclient = networkingclient
 })
+window.onbeforeunload = function() {
+    networkingclient.connection.close()
+};

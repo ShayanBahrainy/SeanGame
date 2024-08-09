@@ -1,7 +1,7 @@
 import {PlayerText} from './text.js'
 import { Game } from './server.js';
 class player {
-    constructor(height, width, renderer, remoteAddress) {
+    constructor(height, width, renderer, remoteAddress, name) {
         this.height = height;
         this.width = width;
         this.remoteAddress = remoteAddress
@@ -21,6 +21,8 @@ class player {
         this.heal = this.healtime
         this.score = 0
         this.scoretext = new PlayerText(renderer, "0", remoteAddress, (Game.width/10) * 9, 0, false)
+        this.nametag = new PlayerText(renderer, name, remoteAddress, (Game.width/10) * 1, 0, false)
+        this.text = name
         this.shape = "rectangle" 
         this.renderer = renderer
         this.playeraim = new playeraim(this,3,10,renderer,remoteAddress)
@@ -31,14 +33,6 @@ class player {
     }
     collision(self,object) {
         return
-        if (self.health <= 0 && !self.paused) {
-            if (self.sean){
-                self.sean.destruct()
-            }
-            else {
-                self.pause()
-            }
-        }
     }
     update() {
         if (this.health <= 0 && !this.paused) {
@@ -91,7 +85,7 @@ class player {
         let Y = this.playeraim.y - CenterY
         let X = this.playeraim.x - CenterX
 
-        new bullet(5, CenterX, CenterY, X/20, Y/20, this, this.renderer, ["obstacle","boss","abhinav"],50)
+        new bullet(5, CenterX, CenterY, X/20, Y/20, this, this.renderer, ["obstacle","boss","abhinav", "player"],50)
     }
     handleInput(data) {
         if (this.paused) {
@@ -102,16 +96,16 @@ class player {
         if (data.MouseState) {
             this.fireBullet()
         }
-        if (keys.indexOf("w") != -1 || keys.indexOf("ArrowUp") != -1) {
+        if (keys.indexOf("w") != -1 || keys.indexOf("ArrowUp") != -1 || keys.indexOf("W") != -1) {
             this.y -= this.speed
         }
-        if (keys.indexOf("a") != -1 || keys.indexOf("ArrowLeft") != -1) {
+        if (keys.indexOf("a") != -1 || keys.indexOf("ArrowLeft") != -1 || keys.indexOf("A") != -1) {
             this.x -= this.speed
         }
-        if (keys.indexOf("s") != -1|| keys.indexOf("ArrowDown") != -1) {
+        if (keys.indexOf("s") != -1|| keys.indexOf("ArrowDown") != -1 || keys.indexOf("S") != -1) {
             this.y += this.speed
         }
-        if (keys.indexOf("d") != -1 || keys.indexOf("ArrowRight") != -1) {
+        if (keys.indexOf("d") != -1 || keys.indexOf("ArrowRight") != -1 || keys.indexOf("D") != -1) {
             this.x += this.speed
         }
         if (keys.indexOf("f") != -1) {
@@ -128,6 +122,9 @@ class player {
     }
     pause() {
         let seconds = 10
+        if (this.lastenemy && this.lastenemy.constructor.name == "player") {
+            this.lastenemy.score += 50
+        }
         this.pausetext = new PlayerText(this.renderer, this.text + " (You) died! Rejoining in" + seconds + " seconds", this.remoteAddress, Game.width/2, Game.height/2, true)
         this.paused = true
         this.pausetimer = 60 * 10
@@ -171,15 +168,19 @@ class bullet {
         }
         this.x += this.xrate
         this.y += this.yrate
-        this.radius += .05
+        this.radius += .01 * ((Math.abs(this.xrate) + Math.abs(this.yrate) ) /2)
     } 
     collision(self, collidee) {
         if (!self.targets.includes(collidee.constructor.name)){
             return
         }
+        if (self.owner == collidee) {
+            return
+        }
         if (self.collided.indexOf(collidee) != -1) {
             return
         }
+        /* Enemies will add score themselves, to ensure score is not duplicated.
         if (collidee.constructor.name != "Boss") {
             if (!collidee.killvalue) {
                 self.owner.score += 1
@@ -187,12 +188,12 @@ class bullet {
             else {
                 self.owner.score += collidee.killvalue
             }
-        }
+        } */
         else {
             this.lifetime = 0
         }
-        collidee.health -= this.damage
-        collidee.lastenemy = this.owner
+        collidee.health -= self.damage
+        collidee.lastenemy = self.owner
         self.collided.push(collidee)
     }
 }
