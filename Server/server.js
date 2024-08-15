@@ -22,13 +22,14 @@ class game {
     static width = 1280
     static height = 720
     static enemiesperplayer = 5
-  constructor(fps, server) {
+  constructor(fps, server, clientserver) {
       this.objects = new Array()
       this.message = null
       this.frames = -1
       this.clients = []
       this.playerobjects = {}
       this.packettimes = {}
+      this.clientserver = clientserver
       game.instance = this
       this.intervalId = setInterval(this.tick,Math.round(1000/fps),this)
       let self = this
@@ -36,9 +37,7 @@ class game {
         V = V.toString()
         self.names = V.split("\n")
       })
-      this.server = server ? server : new WebSocketServer.Server({
-        port: 690
-      })
+      this.server = server ? server : new WebSocketServer.Server({server: clientserver})
       this.server.on('connection', this.newClient)
       this.enemies = []
       this.playeronly = {}
@@ -47,8 +46,8 @@ class game {
       new GuardObstacle(10, 10, this, Game.width, 0, Game.height, 'y')
       new GuardObstacle(10, 10, this, 0, Game.height, Game.width, 'x')
   }
-  static withDelay(time, fps, previousmessage) {
-    let server = new WebSocketServer.Server({port: 690})
+  static withDelay(time, fps, clientserver, previousmessage) {
+    let server = new WebSocketServer.Server({server: clientserver})
     function newClient(socket) {
         let r =  {}
         let message = 'Game starting in ' + time + ' seconds'
@@ -81,7 +80,7 @@ class game {
         else {
             server.clients.forEach(sendReconnect)
             server.off('connection', newClient)
-            return new game(fps, server)
+            return new game(fps, server, clientserver)
         }
     }
     setTimeout(sendAll, 1000)
@@ -267,7 +266,7 @@ class game {
             self.clients[name].close()
         }
         self.server.close(function () {
-            game.withDelay(60, 60, winner.text + "won! ")
+            game.withDelay(60, 60, self.clientserver, winner.text + "won! ")
         })
         clearInterval(self.intervalId)
       }
@@ -388,4 +387,7 @@ const cert = readFileSync("server.cert")
 const server = createServer(ClientServer)
 server.listen(80)
 
+//game.withDelay(60, 60, server)
+
 export const Game = game
+export const CServer = server

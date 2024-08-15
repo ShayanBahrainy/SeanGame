@@ -294,7 +294,9 @@ window.addEventListener("load", function (){
     document.body.appendChild(canvas)
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
-    networkingclient = new NetworkingClient("ws://127.0.0.1:690", canvas, window.innerWidth, window.innerHeight)
+    let server = "127.0.0.1:80"
+    let protocol = window.location.protocol == "https://" ? "wss://" : "ws://"
+    networkingclient = new NetworkingClient(protocol + server, canvas, window.innerWidth, window.innerHeight)
     this.window.networkingclient = networkingclient
 })
 window.onbeforeunload = function() {
