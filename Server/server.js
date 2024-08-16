@@ -1,5 +1,4 @@
 import WebSocketServer from 'ws'
-import {TypedJSON} from 'typedjson'
 
 import {readFile} from 'node:fs/promises'
 
