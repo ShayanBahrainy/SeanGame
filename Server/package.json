@@ -1,1 +1,18 @@
-{"type": "module"}
+{
+    "name": "sean-game",
+    "version": "1.0.0",
+    "description": "Sean's Game Server",
+    "main": "main.js",
+    "keywords": [
+      "Aurorii",
+      "Sean's",
+      "Game"
+    ],
+    "author": "Shayan Bahrainy @ Improve",
+    "license": "UNLICENSED",
+    "dependencies": {
+      "greenlock-express": "^4.0.3"
+    },
+    "type" : "module"
+}
+  

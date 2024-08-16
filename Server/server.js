@@ -418,4 +418,4 @@ server.listen(80)
 game.withDelay(60, 60, http2Server || server)
 
 export const Game = game
-export const CServer = server
+export const CServer = http2Server || server
