@@ -17,7 +17,7 @@ import pkg from 'greenlock-express';
 import { readFileSync } from 'node:fs'
 
 const {init} = pkg;
-
+let http2Server 
 class game {
     static width = 1280
     static height = 720
@@ -370,7 +370,33 @@ class game {
       return sorted
   }
 }
-/*
+
+function httpsWorker(glx) {
+    //
+    // HTTP2 would have been the default httpsServer for node v12+
+    // However... https://github.com/expressjs/express/issues/3388
+    //
+
+    // Get the raw http2 server:
+    var tlsOptions = null;
+    http2Server = glx.http2Server(tlsOptions, ClientServer);
+
+    http2Server.listen(443, "0.0.0.0", function() {
+        console.info("Listening on ", http2Server.address());
+    });
+
+    // Note:
+    // You must ALSO listen on port 80 for ACME HTTP-01 Challenges
+    // (the ACME and http->https middleware are loaded by glx.httpServer)
+    var httpServer = glx.httpServer();
+
+    httpServer.listen(80, "0.0.0.0", function() {
+        console.info("Listening on ", httpServer.address());
+    });
+
+}
+
+
 init({
     packageRoot: './',
     configDir: "./greenlock.d",
@@ -380,14 +406,16 @@ init({
 
     // whether or not to run at cloudscale
     cluster: false
-}).serve(ClientServer)
-*/
+}).serve(httpsWorker)
+
+
+/*
 const key = readFileSync("server.key")
 const cert = readFileSync("server.cert")
 const server = createServer(ClientServer)
 server.listen(80)
-
-//game.withDelay(60, 60, server)
+*/
+game.withDelay(60, 60, http2Server || server)
 
 export const Game = game
 export const CServer = server
