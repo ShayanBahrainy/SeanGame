@@ -395,3 +395,5 @@ else {
 }
 
 game.withDelay(60, 60, httpsServer || httpServer)
+
+export const Game = game
