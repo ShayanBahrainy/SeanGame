@@ -11,12 +11,14 @@ import { timeStamp } from 'node:console'
 import { ClientServer } from './client-server.js'
 
 import {createServer} from 'http'
+import {createServer as createSecureServer} from 'https'
 
-import pkg from 'greenlock-express';
+
 import { readFileSync } from 'node:fs'
 
-const {init} = pkg;
-let http2Server 
+
+let isProduction = false
+
 class game {
     static width = 1280
     static height = 720
@@ -370,51 +372,26 @@ class game {
   }
 }
 
-function httpsWorker(glx) {
-    //
-    // HTTP2 would have been the default httpsServer for node v12+
-    // However... https://github.com/expressjs/express/issues/3388
-    //
 
-    // Get the raw http2 server:
-    var tlsOptions = null;
-    http2Server = glx.http2Server(tlsOptions, ClientServer);
-
-    http2Server.listen(443, "0.0.0.0", function() {
-        console.info("Listening on ", http2Server.address());
+if (isProduction) {
+    const options = {
+        key: fs.readFileSync('server.key'),
+        cert: fs.readFileSync('server.cert')
+    };
+    
+    const httpsServer = https.createServer(options, ClientServer);
+    
+    const httpServer = http.createServer((req, res) => {
+        res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
+        res.end();
     });
-
-    // Note:
-    // You must ALSO listen on port 80 for ACME HTTP-01 Challenges
-    // (the ACME and http->https middleware are loaded by glx.httpServer)
-    var httpServer = glx.httpServer();
-
-    httpServer.listen(80, "0.0.0.0", function() {
-        console.info("Listening on ", httpServer.address());
-    });
-
+    
+    httpServer.listen(80);
+    httpsServer.listen(443);
+}
+else {
+    const httpServer = createServer(ClientServer)
+    httpServer.listen(80)
 }
 
-
-init({
-    packageRoot: './',
-    configDir: "./greenlock.d",
-
-    // contact for security and critical bug notices
-    maintainerEmail: "shayan@aurorii.com",
-
-    // whether or not to run at cloudscale
-    cluster: false
-}).serve(httpsWorker)
-
-
-/*
-const key = readFileSync("server.key")
-const cert = readFileSync("server.cert")
-const server = createServer(ClientServer)
-server.listen(80)
-*/
-game.withDelay(60, 60, http2Server || server)
-
-export const Game = game
-export const CServer = http2Server || server
+game.withDelay(60, 60, httpsServer || httpServer)
