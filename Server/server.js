@@ -17,20 +17,26 @@ import {createServer as createSecureServer} from 'https'
 import { readFileSync } from 'node:fs'
 
 
-let isProduction = false
+let isProduction = true
+let options
+if (isProduction) {
+    options = {
+        key: readFileSync('server.key'),
+        cert: readFileSync('server.cert')
+    };
+}
 
 class game {
     static width = 1280
     static height = 720
     static enemiesperplayer = 5
-  constructor(fps, server, clientserver) {
+  constructor(fps, server) {
       this.objects = new Array()
       this.message = null
       this.frames = -1
       this.clients = []
       this.playerobjects = {}
       this.packettimes = {}
-      this.clientserver = clientserver
       game.instance = this
       this.intervalId = setInterval(this.tick,Math.round(1000/fps),this)
       let self = this
@@ -38,7 +44,7 @@ class game {
         V = V.toString()
         self.names = V.split("\n")
       })
-      this.server = server ? server : new WebSocketServer.Server({server: clientserver})
+      this.server = server ? server : game.setupSocketServer()
       this.server.on('connection', this.newClient)
       this.enemies = []
       this.playeronly = {}
@@ -46,9 +52,19 @@ class game {
       new GuardObstacle(10, 10, this, 0, 0, Game.height, 'y')
       new GuardObstacle(10, 10, this, Game.width, 0, Game.height, 'y')
       new GuardObstacle(10, 10, this, 0, Game.height, Game.width, 'x')
+      server ? null : clientserver.listen(isProduction ? 443 : 80)
   }
-  static withDelay(time, fps, clientserver, previousmessage) {
-    let server = new WebSocketServer.Server({server: clientserver})
+  static setupSocketServer() {
+    if (isProduction) { 
+        let Server = createSecureServer(options)
+        let WSServer = new WebSocketServer.Server({server:Server})
+        Server.listen(690, "0.0.0.0")
+        return WSServer
+    }
+    return new WebSocketServer.Server({port:690})
+  }
+  static withDelay(time, fps, previousmessage) {
+    let server = game.setupSocketServer()
     function newClient(socket) {
         let r =  {}
         let message = 'Game starting in ' + time + ' seconds'
@@ -81,7 +97,7 @@ class game {
         else {
             server.clients.forEach(sendReconnect)
             server.off('connection', newClient)
-            return new game(fps, server, clientserver)
+            return new game(fps, server)
         }
     }
     setTimeout(sendAll, 1000)
@@ -372,28 +388,25 @@ class game {
   }
 }
 
-
+let httpsServer
+let httpServer
 if (isProduction) {
-    const options = {
-        key: fs.readFileSync('server.key'),
-        cert: fs.readFileSync('server.cert')
-    };
     
-    const httpsServer = https.createServer(options, ClientServer);
+    httpsServer = createSecureServer(options, ClientServer);
     
-    const httpServer = http.createServer((req, res) => {
+    httpServer = createServer((req, res) => {
         res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
-        res.end();
+        res.end("<script>window.location.protocol = 'https://'</script>");
     });
     
     httpServer.listen(80);
     httpsServer.listen(443);
 }
 else {
-    const httpServer = createServer(ClientServer)
+    httpServer = createServer(ClientServer)
     httpServer.listen(80)
 }
 
-game.withDelay(60, 60, httpsServer || httpServer)
+game.withDelay(25, 60)
 
 export const Game = game

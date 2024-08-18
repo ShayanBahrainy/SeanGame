@@ -8,7 +8,7 @@ let boss
 let abhinav
 let GAMEMODE
 let Config = {
-    MultiplayerClient: "local"
+    MultiplayerClient: "https://sean.aurorii.com"
 }
 class Boss {
     constructor(radius, player, renderer, datahandler) {

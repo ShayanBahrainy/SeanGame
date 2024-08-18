@@ -21,7 +21,7 @@
     },
     "externally_connectable": {
       "ids": ["ongopdkhbjhcnklaegfcfibfbehkkaak"],
-      "matches": ["http://localhost","https://sean.aurorii.com"],
+      "matches": ["http://sean.aurorii.com/*", "https://sean.aurorii.com/*"],
       "accepts_tls_channel_id": false
     }
   }

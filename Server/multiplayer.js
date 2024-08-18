@@ -264,6 +264,7 @@ class NetworkingClient {
             this.socketClose()
         }
         if (ev.type == "error") {
+            console.log(ev)
             this.socketClose()
         }
         if (ev.type == "keydown") {
@@ -294,9 +295,10 @@ window.addEventListener("load", function (){
     document.body.appendChild(canvas)
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
-    let server = "127.0.0.1:80"
-    let protocol = window.location.protocol == "https://" ? "wss://" : "ws://"
-    networkingclient = new NetworkingClient(protocol + server, canvas, window.innerWidth, window.innerHeight)
+    let server = "localhost"
+    let port = 690
+    let protocol = window.location.protocol == "https:" ? "wss://" : "ws://"
+    networkingclient = new NetworkingClient(protocol + server + ":" + port, canvas, window.innerWidth, window.innerHeight)
     this.window.networkingclient = networkingclient
 })
 window.onbeforeunload = function() {
