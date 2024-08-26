@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Sean's Game",
     "description": "It's Sean's Gaming Time, yo!",
-    "version": "2.3.0",
+    "version": "3.0.0",
     "omnibox" : {"keyword" : "sean"},
     "icons": {
       "16": "images/icon-16.png",

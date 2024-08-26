@@ -52,7 +52,6 @@ class game {
       new GuardObstacle(10, 10, this, 0, 0, Game.height, 'y')
       new GuardObstacle(10, 10, this, Game.width, 0, Game.height, 'y')
       new GuardObstacle(10, 10, this, 0, Game.height, Game.width, 'x')
-      server ? null : clientserver.listen(isProduction ? 443 : 80)
   }
   static setupSocketServer() {
     if (isProduction) { 
