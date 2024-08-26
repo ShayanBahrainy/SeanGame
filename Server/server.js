@@ -1,4 +1,4 @@
-import {WebSocketServer} from 'ws'
+import WebSocketServer from 'ws'
 
 import {readFile} from 'node:fs/promises'
 
@@ -52,16 +52,15 @@ class game {
       new GuardObstacle(10, 10, this, 0, 0, Game.height, 'y')
       new GuardObstacle(10, 10, this, Game.width, 0, Game.height, 'y')
       new GuardObstacle(10, 10, this, 0, Game.height, Game.width, 'x')
-      server ? null : clientserver.listen(isProduction ? 443 : 80)
   }
   static setupSocketServer() {
     if (isProduction) { 
         let Server = createSecureServer(options)
-        let WSServer = new WebSocketServer({server:Server})
+        let WSServer = new WebSocketServer.Server({server:Server})
         Server.listen(2096, "0.0.0.0")
         return WSServer
     }
-    return new WebSocketServer({port:2096})
+    return new WebSocketServer.Server({port:2096})
   }
   static withDelay(time, fps, previousmessage) {
     let server = game.setupSocketServer()
