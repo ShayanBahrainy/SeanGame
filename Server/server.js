@@ -293,7 +293,7 @@ class game {
   }
   isWinner() {
     for (let remoteAddress in this.playerobjects) {
-        if (this.playerobjects[remoteAddress].score >= 50) {
+        if (this.playerobjects[remoteAddress].score >= 500) {
             return this.playerobjects[remoteAddress]
         }
     }
