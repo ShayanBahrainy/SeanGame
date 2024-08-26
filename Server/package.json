@@ -4,14 +4,14 @@
     "description": "Sean's Game Server",
     "main": "main.js",
     "keywords": [
-      "Aurorii",
-      "Sean's",
-      "Game"
+        "Aurorii",
+        "Sean's",
+        "Game"
     ],
     "author": "Shayan Bahrainy @ Improve",
     "license": "UNLICENSED",
     "dependencies": {
+        "ws": "^8.18.0"
     },
-    "type" : "module"
+    "type": "module"
 }
-  
