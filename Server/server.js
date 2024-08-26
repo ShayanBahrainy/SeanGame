@@ -1,4 +1,4 @@
-import WebSocketServer from 'ws'
+import {WebSocketServer} from 'ws'
 
 import {readFile} from 'node:fs/promises'
 
@@ -57,11 +57,11 @@ class game {
   static setupSocketServer() {
     if (isProduction) { 
         let Server = createSecureServer(options)
-        let WSServer = new WebSocketServer.Server({server:Server})
-        Server.listen(690, "0.0.0.0")
+        let WSServer = new WebSocketServer({server:Server})
+        Server.listen(2096, "0.0.0.0")
         return WSServer
     }
-    return new WebSocketServer.Server({port:690})
+    return new WebSocketServer({port:2096})
   }
   static withDelay(time, fps, previousmessage) {
     let server = game.setupSocketServer()
@@ -282,9 +282,10 @@ class game {
             self.clients[name].send(JSON.stringify(r))
             self.clients[name].close()
         }
-        self.server.close(function () {
-            game.withDelay(60, 60, self.clientserver, winner.text + "won! ")
+	self.server.on('close', function () {
+            game.withDelay(60, 60, winner.text + "won! ")
         })
+        self.server.close()
         clearInterval(self.intervalId)
       }
       self.sendUpdate()

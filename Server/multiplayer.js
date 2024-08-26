@@ -295,8 +295,8 @@ window.addEventListener("load", function (){
     document.body.appendChild(canvas)
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
-    let server = "localhost"
-    let port = 690
+    let server = "sean.aurorii.com"
+    let port = 2096
     let protocol = window.location.protocol == "https:" ? "wss://" : "ws://"
     networkingclient = new NetworkingClient(protocol + server + ":" + port, canvas, window.innerWidth, window.innerHeight)
     this.window.networkingclient = networkingclient
