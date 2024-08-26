@@ -2,6 +2,10 @@ let MultiPlayerSuggestion = {description:"Play Multiplayer!", content:"Multiplay
 let SinglePlayerSuggestion = {description:"Play Singleplayer!", content:"Singleplayer Please!"}
 let DefaultSuggestion = {description: "Play Singleplayer!"}
 
+let Config = {
+    Multiplayer: "https://sean.aurorii.com"
+}
+
 class DataHandler {
     constructor(reset) {
         if (reset){
@@ -37,12 +41,12 @@ function isMultiplayer(text) {
 }
 chrome.omnibox.onInputEntered.addListener(function (text, disposition) {
     if (isMultiplayer(text)) {
-        chrome.action.setPopup({popup:"/multiplayer.html"})
+        chrome.tabs.create({url:Config.Multiplayer})
     }
     else {
         chrome.action.setPopup({popup:"/popup.html"})
+        chrome.action.openPopup()
     }
-    chrome.action.openPopup()
 })
 function openPage(page) {
     chrome.action.setPopup({popup:page})
