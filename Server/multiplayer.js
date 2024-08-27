@@ -301,6 +301,7 @@ window.addEventListener("load", function (){
     networkingclient = new NetworkingClient(protocol + server + ":" + port, canvas, window.innerWidth, window.innerHeight)
     this.window.networkingclient = networkingclient
 })
-window.onbeforeunload = function() {
-    networkingclient.connection.close()
-};
+window.addEventListener("pagehide", function() {
+	    networkingclient.connection.close()
+	    this.window.close()
+})

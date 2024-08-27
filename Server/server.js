@@ -1,4 +1,4 @@
-import WebSocketServer from 'ws'
+import  {WebSocketServer} from 'ws'
 
 import {readFile} from 'node:fs/promises'
 
@@ -54,13 +54,23 @@ class game {
       new GuardObstacle(10, 10, this, 0, Game.height, Game.width, 'x')
   }
   static setupSocketServer() {
+	let CompressionOptions = {
+		 zlibDeflateOptions: {
+			 chunkSize: 1024,
+			 memlevel: 7,
+			 level: 3,
+		 },
+		 zlibInflateOptions: {
+			 chunkSize: 10 * 1024
+		 }
+	 }
     if (isProduction) { 
         let Server = createSecureServer(options)
-        let WSServer = new WebSocketServer.Server({server:Server})
+        let WSServer = new WebSocketServer({server:Server,backlog:1024, perMessageDeflate:CompressionOptions})
         Server.listen(2096, "0.0.0.0")
         return WSServer
     }
-    return new WebSocketServer.Server({port:2096})
+    return new WebSocketServer({port:2096,backlog:1024, perMessageDeflate:CompressionOptions})
   }
   static withDelay(time, fps, previousmessage) {
     let server = game.setupSocketServer()
@@ -292,7 +302,7 @@ class game {
   }
   isWinner() {
     for (let remoteAddress in this.playerobjects) {
-        if (this.playerobjects[remoteAddress].score >= 500) {
+        if (this.playerobjects[remoteAddress].score >= 250) {
             return this.playerobjects[remoteAddress]
         }
     }
