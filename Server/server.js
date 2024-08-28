@@ -370,9 +370,9 @@ class game {
     if (index != -1){
         self.objects.splice(index,1)
     }
-    index = self.enemies.indexOf(object)
+    var enemyindex = self.enemies.indexOf(object)
     if (index != -1) {
-        self.objects.splice(index,1)
+        self.enemies.splice(enemyindex,1)
     }
   }
   addObject(object){
