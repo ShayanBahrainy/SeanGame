@@ -15,7 +15,7 @@ class obstacle{
         this.fillStyle = "rgb(255,0,255)"
         this.speed = .4
         this.shape = "rectangle"
-        this.damagetime = 60
+        this.damagetime = 1 * Game.instance.fps
         this.health = 50
         this.damage = 50
         this.damagetimer = this.damagetime
@@ -108,7 +108,7 @@ class guardobstacle{
         this.health = 50
 
         this.damage = 50
-        this.damagetime = 60
+        this.damagetime = 1 * Game.instance.fps
         this.damagetimer = this.damagetime
 
         this.startx = x

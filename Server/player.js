@@ -10,23 +10,29 @@ class player {
         this.sidedirection = 0
         this.updirection = 0
         this.y = Game.height/2;
-        this.reloadtime = 60 
+        this.reloadtime = Game.instance.fps / 2
         this.timer = 0
         this.priority = 10
         this.fillStyle = "rgb(0,0,255)"
         this.maxhealth = 255
         this.health = this.maxhealth
         this.speed = 1.5
-        this.healtime = 600
+        this.healtime = 10 * Game.instance.fps
         this.heal = this.healtime
         this.score = 0
-        this.scoretext = new PlayerText(renderer, "0", remoteAddress, (Game.width/10) * 9, 0, false)
-        this.nametag = new PlayerText(renderer, name, remoteAddress, (Game.width/10) * 1, 0, false)
+        this.scoretext = new PlayerText(renderer, "0", remoteAddress, (Game.width/10) * 9, 0, false, false)
+        this.nametag = new PlayerText(renderer, name, remoteAddress, (Game.width/10) * 1, 0, false, false)
         this.text = name
         this.shape = "rectangle" 
         this.renderer = renderer
         this.playeraim = new playeraim(this,3,10,renderer,remoteAddress)
         renderer.addObject(this)
+    }
+    set subtitle(playertext) {
+        if (this._subtitle) {
+            this._subtitle.destruct()
+        }
+        this._subtitle = playertext 
     }
     setBulletSpeed(v) {
         this.reloadtime = v
@@ -43,7 +49,8 @@ class player {
         }
         if (this.paused && this.pausetimer > 0){
             this.pausetimer -= 1
-            this.pausetext.text = "You died! Rejoining in " + Math.round(this.pausetimer/60) + " seconds."
+            this.pausetext.text = this.text + "(You) died! Rejoining in " + Math.round(this.pausetimer/Game.instance.fps) + " seconds."
+            return
         }
         this.scoretext.text = this.score
         const XBorderOne = 0
@@ -70,6 +77,9 @@ class player {
             this.heal = this.healtime
         }
         this.fillStyle = "rgb(red,0,blue)".replace("red",255-this.health).replace("blue",this.health)
+        if (this.score > 125) {
+            this.fillStyle = "rgb(255, 215, 0)"
+        }
     }
     fireBullet() {
         if (this.timer >= 0) {
@@ -121,13 +131,15 @@ class player {
         delete this
     }
     pause() {
+        this.fillStyle = "rgb(0,0,0)"
         let seconds = 10
         if (this.lastenemy && this.lastenemy.constructor.name == "player") {
             this.lastenemy.score += 50
+            this.lastenemy.subtitle = new PlayerText(this.renderer, "You killed " + this.text + " 💀", this.lastenemy.remoteAddress, Game.width/2, 0, 10, false)
         }
-        this.pausetext = new PlayerText(this.renderer, this.text + " (You) died! Rejoining in" + seconds + " seconds", this.remoteAddress, Game.width/2, Game.height/2, true)
+        this.pausetext = new PlayerText(this.renderer, this.text + " (You) died! Rejoining in" + seconds + " seconds", this.remoteAddress, Game.width/2, Game.height/2, seconds, true)
         this.paused = true
-        this.pausetimer = 60 * 10
+        this.pausetimer = Game.instance.fps * seconds
     }
     unpause() {
         this.paused = false
