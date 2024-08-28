@@ -34,6 +34,7 @@ class game {
       this.objects = new Array()
       this.message = null
       this.frames = -1
+      this.fps = fps
       this.clients = []
       this.playerobjects = {}
       this.packettimes = {}
@@ -367,7 +368,11 @@ class game {
   removeObject(self, object){
     var index = self.objects.indexOf(object)
     if (index != -1){
-        delete self.objects[index]
+        self.objects.splice(index,1)
+    }
+    index = self.enemies.indexOf(object)
+    if (index != -1) {
+        self.objects.splice(index,1)
     }
   }
   addObject(object){
@@ -417,6 +422,6 @@ else {
     httpServer.listen(80)
 }
 
-game.withDelay(25, 60)
+game.withDelay(5, 45)
 
 export const Game = game
