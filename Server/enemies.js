@@ -51,7 +51,7 @@ class obstacle{
         if (this.health <= 0) {
             this.killvalue ? self.lastenemy.score += this.killvalue : self.lastenemy.score += 1
             self.renderer.removeObject(self.renderer,self)
-            if (Game.instance.enemies.length <= Game.enemiesperplayer * Game.instance.clients.length) {
+            if (Game.instance.getEnemyCount() <= Game.enemiesperplayer * Game.instance.clients.length) {
                 new Obstacle(10, 10, self.renderer, self.lastenemy ? self.lastenemy : self.target)
             }
         }
@@ -88,6 +88,9 @@ class obstacle{
             object.health -= self.damage
             self.damagetimer = self.damagetime
         }
+    }
+    destruct() {
+        Game.instance.removeObject(Game.instance, this)
     }
 }
 class guardobstacle{

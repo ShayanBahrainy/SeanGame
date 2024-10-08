@@ -1,6 +1,7 @@
 import {PlayerText} from './text.js'
 import { Game } from './server.js';
 class player {
+    static KillStreakIncrement = 2
     constructor(height, width, renderer, remoteAddress, name) {
         this.height = height;
         this.width = width;
@@ -26,6 +27,7 @@ class player {
         this.shape = "rectangle" 
         this.renderer = renderer
         this.playeraim = new playeraim(this,3,10,renderer,remoteAddress)
+        this.streak = 0
         renderer.addObject(this)
     }
     set subtitle(playertext) {
@@ -49,7 +51,7 @@ class player {
         }
         if (this.paused && this.pausetimer > 0){
             this.pausetimer -= 1
-            this.pausetext.text = this.text + "(You) died! Rejoining in " + Math.round(this.pausetimer/Game.instance.fps) + " seconds."
+            this.pausetext.text = this.text + " (You) died! Rejoining in " + Math.round(this.pausetimer/Game.instance.fps) + " seconds."
             return
         }
         this.scoretext.text = this.score
@@ -130,12 +132,19 @@ class player {
         this.renderer.removeObject(this.renderer, this)
         delete this
     }
+    getStreakText () {
+        if (this.score % player.KillStreakIncrement == 0) {
+            return "You have a " + this.score + " kill streak 🔥"
+        }
+        return ""
+    }
     pause() {
         this.fillStyle = "rgb(0,0,0)"
         let seconds = 10
         if (this.lastenemy && this.lastenemy.constructor.name == "player") {
             this.lastenemy.score += 50
-            this.lastenemy.subtitle = new PlayerText(this.renderer, "You killed " + this.text + " 💀", this.lastenemy.remoteAddress, Game.width/2, 0, 10, false)
+            this.lastenemy.streak += 1
+            this.lastenemy.subtitle = new PlayerText(this.renderer, "You killed " + this.text + " 💀 " + this.lastenemy.getStreakText(), this.lastenemy.remoteAddress, Game.width/2, 0, 10, false)
         }
         this.pausetext = new PlayerText(this.renderer, this.text + " (You) died! Rejoining in" + seconds + " seconds", this.remoteAddress, Game.width/2, Game.height/2, seconds, true)
         this.paused = true

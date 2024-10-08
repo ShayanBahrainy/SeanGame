@@ -1,0 +1,46 @@
+<html>
+    <head>
+        <script>
+            let connections = []
+            window.addEventListener("load", function () {
+                document.getElementById("add").addEventListener("click", function () {
+                    let server = document.getElementById("server").value
+                    let quantity = document.getElementById("quantity").value
+                    let i = 0
+                    while (i < quantity) {
+                        connections.push(new WebSocket(server))
+                        i++
+                    }
+                })
+                document.getElementById("clear").addEventListener("click", function () {
+                    for (index in connections) {
+                        let connection = connections[index]
+                        connection.close()
+                    }
+                })
+            })
+            function updateConnections() {
+                let alive = 0
+                for (index in connections) {
+                    let connection = connections[index]
+                    if (connection.readyState == 1) {
+                        connection.send('{"Keys":[],"MousePos":{"X":0,"Y":0},"MouseState":false}')
+                        alive += 1
+                    }
+                    if (connection.readyState == 2 || connection.readyState == 3) {
+                        delete connections[index]
+                    }
+                }
+                document.getElementById("connections").innerText = "Connections: " + alive
+            }
+            setInterval(updateConnections, 100)
+        </script>
+    </head>
+    <body>
+        <p>Connections:</p><input type="number" id="quantity">
+        <p>Server:</p><input type="text" id="server">
+        <p id="connections"></p>
+        <button id="add" type="button">Connect!</button>
+        <button id="clear" type="button">Clear Connections.</button>
+    </body>
+</html>

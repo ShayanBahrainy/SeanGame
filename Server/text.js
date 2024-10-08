@@ -35,7 +35,7 @@ class playertext {
         renderer.addPlayerObject(remoteAddress,this)
     }
     update() {
-        if (!this.timer) {
+        if (this.timer === false) {
             return
         }
         if (this.timer > 0) {

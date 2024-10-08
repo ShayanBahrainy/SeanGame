@@ -23,5 +23,11 @@
       "ids": ["ongopdkhbjhcnklaegfcfibfbehkkaak"],
       "matches": ["http://sean.aurorii.com/*", "https://sean.aurorii.com/*"],
       "accepts_tls_channel_id": false
-    }
+    },
+    "content_scripts": [
+      {
+        "matches": ["*://sean.aurorii.com/*","*://localhost/"],
+        "js": ["message-reciever.js"]
+      }
+    ]
   }

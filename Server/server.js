@@ -1,12 +1,11 @@
-import  {WebSocketServer} from 'ws'
+import WebSocketServer from 'ws'
 
 import {readFile} from 'node:fs/promises'
 
+import {performance} from 'node:perf_hooks'
+
 import {Player} from './player.js'
 import {GuardObstacle, Obstacle} from './enemies.js'
-import {Sean} from './sean.js'
-
-import { timeStamp } from 'node:console'
 
 import { ClientServer } from './client-server.js'
 
@@ -29,7 +28,11 @@ if (isProduction) {
 class game {
     static width = 1280
     static height = 720
-    static enemiesperplayer = 5
+    static enemiesperplayer = 4
+    static SocketTimeOutPeriod = 300000 //TODO Update Socket Time out Period back to 3000 (Changed for debugging purposes)
+    static FPS = 60
+    static TimeBetweenRounds = 30
+    static WinQuantity = 250
   constructor(fps, server) {
       this.objects = new Array()
       this.message = null
@@ -67,11 +70,11 @@ class game {
 	 }
     if (isProduction) { 
         let Server = createSecureServer(options)
-        let WSServer = new WebSocketServer({server:Server,backlog:1024, perMessageDeflate:CompressionOptions})
+        let WSServer = new WebSocketServer.Server({server:Server,backlog:1024, perMessageDeflate:CompressionOptions})
         Server.listen(2096, "0.0.0.0")
         return WSServer
     }
-    return new WebSocketServer({port:2096,backlog:1024, perMessageDeflate:CompressionOptions})
+    return new WebSocketServer.Server({port:2096,backlog:1024, perMessageDeflate:CompressionOptions})
   }
   static withDelay(time, fps, previousmessage) {
     let server = game.setupSocketServer()
@@ -226,9 +229,6 @@ class game {
     game.instance.playeronly[remoteAddress] = []
     game.instance.playerobjects[remoteAddress] = new Player(10, 10, game.instance, remoteAddress, name)
     game.instance.packettimes[remoteAddress] = new Date().getTime()
-    while (game.instance.enemies.length < game.enemiesperplayer * game.instance.clients.length) {
-        game.instance.enemies.push(new Obstacle(10, 10, game.instance, game.instance.playerobjects[remoteAddress]))
-    }
     socket.on('close', function() {
         game.instance.playerobjects[remoteAddress].destruct()
         delete game.instance.playerobjects[remoteAddress]
@@ -238,6 +238,37 @@ class game {
         data = JSON.parse(data)
         game.instance.handleInput(socket, data)
     })
+  }
+  getEnemyCount() {
+    let enemycount = 0
+    for (let object of this.objects) {
+        if (object.constructor.name == "obstacle") {
+            enemycount += 1
+        }
+    }
+    return enemycount
+  }
+  getLastEnemy() {
+    let LastEnemy
+    for (let object of this.objects) {
+        if (object.constructor.name == "obstacle") {
+            LastEnemy = object
+        }
+    }
+    return LastEnemy ? LastEnemy : false
+  }
+  handleEnemyCount(){
+    let enemyCount = this.getEnemyCount()
+    while (enemyCount < (game.enemiesperplayer * game.instance.clients.length)) {
+        enemyCount += 1
+        new Obstacle(10, 10, game.instance, Object.values(game.instance.playerobjects)[Object.values(game.instance.playerobjects).length - 1])
+    }
+    while (enemyCount > (game.enemiesperplayer * game.instance.clients.length)) {
+        let LastEnemy = this.getLastEnemy()
+        if (LastEnemy) { 
+            LastEnemy.destruct()
+        }
+    }
   }
   static getRemoteAddress(socket) {
     return socket._socket.remoteAddress + ':' + socket._socket.remotePort
@@ -261,12 +292,20 @@ class game {
     let currentTime = new Date().getTime()
     for (let name in this.clients) {
         let socket = this.clients[name]
-        if (currentTime - this.packettimes[game.getRemoteAddress(socket)] > 3000) {
+        if ((currentTime - this.packettimes[game.getRemoteAddress(socket)]) > game.SocketTimeOutPeriod) {
             socket.terminate()
         }
     }
   }
   tick(self) {
+        if (!self.perfcount) {
+            self.perfcount = 0
+        }
+        if (!self.perfdata) {
+            self.perfdata = 0
+        }
+      let start = performance.now()
+      self.handleEnemyCount()
       self.collisonChecks(self)
       let renderObjects = game.sortObjects(self.objects)
       for (let key in renderObjects) {
@@ -292,18 +331,30 @@ class game {
             self.clients[name].send(JSON.stringify(r))
             self.clients[name].close()
         }
-	self.server.on('close', function () {
-            game.withDelay(60, 60, winner.text + "won! ")
+	    self.server.on('close', function () {
+            setTimeout(game.withDelay, 300, game.TimeBetweenRounds, game.FPS, winner.text + "won! ")
+            //game.withDelay(60, 60, winner.text + "won! ")
         })
+        if (self.server._server) {
+            self.server._server.close()
+        }
         self.server.close()
         clearInterval(self.intervalId)
       }
       self.sendUpdate()
       self.connectionChecker()
+      let end = performance.now()
+      self.perfdata += 1000/(end-start + 1000/self.fps)
+      self.perfcount += 1
+      if (self.perfcount > 180) {
+        console.log(self.perfdata/self.perfcount + "fps")
+        self.perfdata = 0
+        self.perfcount = 0
+      }
   }
   isWinner() {
     for (let remoteAddress in this.playerobjects) {
-        if (this.playerobjects[remoteAddress].score >= 250) {
+        if (this.playerobjects[remoteAddress].score >= game.WinQuantity) {
             return this.playerobjects[remoteAddress]
         }
     }
@@ -369,10 +420,6 @@ class game {
     var index = self.objects.indexOf(object)
     if (index != -1){
         self.objects.splice(index,1)
-    }
-    var enemyindex = self.enemies.indexOf(object)
-    if (index != -1) {
-        self.enemies.splice(enemyindex,1)
     }
   }
   addObject(object){

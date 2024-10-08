@@ -119,6 +119,10 @@ class DataHandler {
     }
 }
 class NetworkingClient {
+    static CONNECTING = 0
+    static CONNECTED = 1
+    static RECONNECTING = 2
+    static DISCONNECTED = 3
     constructor(server, canvas, width, height) {
         this.server = server
 
@@ -132,6 +136,7 @@ class NetworkingClient {
         this.mousey = 0
 
         this.statustext = "Connecting..."
+        this.status = NetworkingClient.CONNECTING
 
         this.connection = new WebSocket(this.server)
 
@@ -146,11 +151,11 @@ class NetworkingClient {
         document.addEventListener("keydown",this)
         document.addEventListener("keyup",this)
     }
-    socketClose(saveStatus) {
+    socketClose() {
         clearInterval(this.tick)
         clearInterval(this.checkinterval)
         this.clearListeners()
-        if (!saveStatus) {
+        if (this.status == NetworkingClient.DISCONNECTED) {
             this.statustext = "Disconnected :("
         }
     }
@@ -160,6 +165,7 @@ class NetworkingClient {
         }
         let Time = new Date().getTime()
         if (self.connection.readyState > WebSocket.CONNECTING && (Time - self.lastMessage > 3000)) {
+            this.status = NetworkingClient.DISCONNECTED
             self.connection.close()
             self.socketClose()
         }
@@ -226,6 +232,7 @@ class NetworkingClient {
         }
         if (request.type == "reconnect") {
             setTimeout(this.reconnect, request.time, this)
+            this.status = NetworkingClient.RECONNECTING
             this.socketClose(true)
             this.connection.close()
             this.connection.removeEventListener("close", this)
@@ -235,8 +242,7 @@ class NetworkingClient {
             this.statustext = "Reconnecting..."
         }
         if (request.type == "bling") {
-            var editorExtensionId = "cjklkcpgnmdcnkepkndbmnajaibdmcaj"
-            chrome.runtime.sendMessage(editorExtensionId, {type:"bling", amount:amount})
+            window.postMessage({type:"bling", amount:request.amount},"*")
         }
     }
     handleEvent(ev) {
@@ -258,9 +264,13 @@ class NetworkingClient {
         }
         if (ev.type == "open") {
             this.statustext = ""
+            this.status = NetworkingClient.CONNECTED
             this.tick = setInterval(this.sendUpdate, 1000/60, this)
         }
         if (ev.type == "close") {
+            if (this.status != NetworkingClient.RECONNECTING) {
+                this.status = NetworkingClient.CLOSED
+            }
             this.socketClose()
         }
         if (ev.type == "error") {
@@ -295,7 +305,7 @@ window.addEventListener("load", function (){
     document.body.appendChild(canvas)
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
-    let server = "sean.aurorii.com"
+    let server = window.location.hostname
     let port = 2096
     let protocol = window.location.protocol == "https:" ? "wss://" : "ws://"
     networkingclient = new NetworkingClient(protocol + server + ":" + port, canvas, window.innerWidth, window.innerHeight)
