@@ -125,7 +125,7 @@ class NetworkingClient {
     static DISCONNECTED = 3
     constructor(server, canvas, width, height) {
         this.server = server
-
+        window.networkingclient = this
         this.width = width
         this.height = height
         this.canvas = canvas
@@ -164,8 +164,8 @@ class NetworkingClient {
             return
         }
         let Time = new Date().getTime()
-        if (self.connection.readyState > WebSocket.CONNECTING && (Time - self.lastMessage > 3000)) {
-            this.status = NetworkingClient.DISCONNECTED
+        if (self.connection.readyState == WebSocket.CONNECTING && ((Time - self.lastMessage) > 3000)) {
+            self.status = NetworkingClient.DISCONNECTED
             self.connection.close()
             self.socketClose()
         }
@@ -233,7 +233,7 @@ class NetworkingClient {
         if (request.type == "reconnect") {
             setTimeout(this.reconnect, request.time, this)
             this.status = NetworkingClient.RECONNECTING
-            this.socketClose(true)
+            this.socketClose()
             this.connection.close()
             this.connection.removeEventListener("close", this)
             this.connection.removeEventListener("message", this)
@@ -309,7 +309,6 @@ window.addEventListener("load", function (){
     let port = 2096
     let protocol = window.location.protocol == "https:" ? "wss://" : "ws://"
     networkingclient = new NetworkingClient(protocol + server + ":" + port, canvas, window.innerWidth, window.innerHeight)
-    this.window.networkingclient = networkingclient
 })
 window.addEventListener("pagehide", function() {
 	    networkingclient.connection.close()

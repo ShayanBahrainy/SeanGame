@@ -30,19 +30,21 @@ class game {
     static height = 720
     static enemiesperplayer = 4
     static SocketTimeOutPeriod = 300000 //TODO Update Socket Time out Period back to 3000 (Changed for debugging purposes)
+    static MinimumRewardPlayers = 1 //TODO Set to 2 before pushing (for testing purposes)
+    static RewardQuantity = 3000
     static FPS = 60
     static TimeBetweenRounds = 30
     static WinQuantity = 250
-  constructor(fps, server) {
+  constructor(server) {
       this.objects = new Array()
       this.message = null
       this.frames = -1
-      this.fps = fps
+      this.fps = game.FPS
       this.clients = []
       this.playerobjects = {}
       this.packettimes = {}
       game.instance = this
-      this.intervalId = setInterval(this.tick,Math.round(1000/fps),this)
+      this.intervalId = setInterval(this.tick,Math.round(1000/this.fps),this)
       let self = this
       readFile("names.txt").then(function (V) {
         V = V.toString()
@@ -70,13 +72,13 @@ class game {
 	 }
     if (isProduction) { 
         let Server = createSecureServer(options)
-        let WSServer = new WebSocketServer.Server({server:Server,backlog:1024, perMessageDeflate:CompressionOptions})
+        let WSServer = new WebSocketServer({server:Server,backlog:1024, perMessageDeflate:CompressionOptions})
         Server.listen(2096, "0.0.0.0")
         return WSServer
     }
     return new WebSocketServer.Server({port:2096,backlog:1024, perMessageDeflate:CompressionOptions})
   }
-  static withDelay(time, fps, previousmessage) {
+  static withDelay(time, previousmessage) {
     let server = game.setupSocketServer()
     function newClient(socket) {
         let r =  {}
@@ -110,7 +112,7 @@ class game {
         else {
             server.clients.forEach(sendReconnect)
             server.off('connection', newClient)
-            return new game(fps, server)
+            return new game(server)
         }
     }
     setTimeout(sendAll, 1000)
@@ -325,15 +327,19 @@ class game {
             let r = {}
             r.type = "reconnect"
             r.time = .5 * 1000
-            if (self.playerobjects[Game.getRemoteAddress(self.clients[name])] == winner && self.clients.length >= 2) {
-                self.sendBling(self.clients[name], 3000)
+            if (self.playerobjects[Game.getRemoteAddress(self.clients[name])] == winner && self.clients.length >= game.MinimumRewardPlayers) {
+                self.sendBling(self.clients[name], game.RewardQuantity)
             }
             self.clients[name].send(JSON.stringify(r))
-            self.clients[name].close()
         }
+        setTimeout(function () {
+            for (let socket of self.clients) {
+                socket.close()
+            }
+        },100,self.clients)
 	    self.server.on('close', function () {
-            setTimeout(game.withDelay, 300, game.TimeBetweenRounds, game.FPS, winner.text + "won! ")
-            //game.withDelay(60, 60, winner.text + "won! ")
+            setTimeout(game.withDelay, 300, game.TimeBetweenRounds, winner.text + "won! ")
+            //game.withDelay(60, winner.text + "won! ")
         })
         if (self.server._server) {
             self.server._server.close()
@@ -469,6 +475,6 @@ else {
     httpServer.listen(80)
 }
 
-game.withDelay(5, 45)
+game.withDelay(5)
 
 export const Game = game

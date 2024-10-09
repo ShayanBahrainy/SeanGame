@@ -1,7 +1,8 @@
 import {PlayerText} from './text.js'
 import { Game } from './server.js';
 class player {
-    static KillStreakIncrement = 2
+    static KillStreakIncrement = 3
+    static KillValue = 25
     constructor(height, width, renderer, remoteAddress, name) {
         this.height = height;
         this.width = width;
@@ -133,16 +134,17 @@ class player {
         delete this
     }
     getStreakText () {
-        if (this.score % player.KillStreakIncrement == 0) {
-            return "You have a " + this.score + " kill streak 🔥"
+        if (this.streak % player.KillStreakIncrement == 0) {
+            return "You have a " + this.streak + " kill streak 🔥"
         }
         return ""
     }
     pause() {
         this.fillStyle = "rgb(0,0,0)"
         let seconds = 10
+        this.streak = 0
         if (this.lastenemy && this.lastenemy.constructor.name == "player") {
-            this.lastenemy.score += 50
+            this.lastenemy.score += player.KillValue
             this.lastenemy.streak += 1
             this.lastenemy.subtitle = new PlayerText(this.renderer, "You killed " + this.text + " 💀 " + this.lastenemy.getStreakText(), this.lastenemy.remoteAddress, Game.width/2, 0, 10, false)
         }
