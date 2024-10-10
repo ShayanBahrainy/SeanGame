@@ -20,11 +20,20 @@
                 })
             })
             function updateConnections() {
+                let PotentialKeys = ["W","A","S","D","F"]
                 let alive = 0
                 for (index in connections) {
                     let connection = connections[index]
                     if (connection.readyState == 1) {
-                        connection.send('{"Keys":[],"MousePos":{"X":0,"Y":0},"MouseState":false}')
+                        let key = []
+                        let x = 0
+                        let y = 0
+                        if (document.getElementById("AI").value) {
+                            key = PotentialKeys[Math.floor(Math.random() * PotentialKeys.length)]
+                            x = Math.random() * 100 * (Math.random() > .5 ? -1 : 1)
+                            y = Math.random() * 100 * (Math.random() > .5 ? -1 : 1)
+                        }
+                        connection.send(`{"Keys":["${key}"],"MousePos":{"X":${x},"Y":${y}},"MouseState":true}`)
                         alive += 1
                     }
                     if (connection.readyState == 2 || connection.readyState == 3) {
@@ -33,7 +42,7 @@
                 }
                 document.getElementById("connections").innerText = "Connections: " + alive
             }
-            setInterval(updateConnections, 100)
+            setInterval(updateConnections, 1)
         </script>
     </head>
     <body>
@@ -42,5 +51,6 @@
         <p id="connections"></p>
         <button id="add" type="button">Connect!</button>
         <button id="clear" type="button">Clear Connections.</button>
+        <p>Simulate player?</p> <input id="AI" type="checkbox">
     </body>
 </html>

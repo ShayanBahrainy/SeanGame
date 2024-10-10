@@ -48,8 +48,12 @@ class obstacle{
         return Y
     }
     update(self) {
-        if (this.health <= 0) {
-            this.killvalue ? self.lastenemy.score += this.killvalue : self.lastenemy.score += 1
+        if (self.renderer.enemydestruct) {
+            self.renderer.enemydestruct = false
+            self.destruct()
+        }
+        if (self.health <= 0) {
+            self.killvalue ? self.lastenemy.score += self.killvalue : self.lastenemy.score += 1
             self.renderer.removeObject(self.renderer,self)
             if (Game.instance.getEnemyCount() <= Game.enemiesperplayer * Game.instance.clients.length) {
                 new Obstacle(10, 10, self.renderer, self.lastenemy ? self.lastenemy : self.target)
@@ -120,7 +124,7 @@ class guardobstacle{
         this.movedirection = 1
         this.axis = axis
         renderer.addObject(this)
-    }7
+    }
     update(self) {
 
         let axispos = self.axis == 'x' ? self.x : self.y

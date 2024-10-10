@@ -15,6 +15,7 @@
   "author": "Shayan Bahrainy @ Improve",
   "license": "UNLICENSED",
   "dependencies": {
-    "greenlock-express": "^4.0.3"
+    "greenlock-express": "^4.0.3",
+    "ws": "^8.18.0"
   }
 }

@@ -1,4 +1,4 @@
-import WebSocketServer from 'ws'
+import {WebSocketServer} from 'ws'
 
 import {readFile} from 'node:fs/promises'
 
@@ -16,7 +16,7 @@ import {createServer as createSecureServer} from 'https'
 import { readFileSync } from 'node:fs'
 
 
-let isProduction = true
+let isProduction = false
 let options
 if (isProduction) {
     options = {
@@ -54,6 +54,7 @@ class game {
       this.server.on('connection', this.newClient)
       this.enemies = []
       this.playeronly = {}
+      this.enemydestruct = false //Enemies will check, and if flag is true, will self-destruct on next tick
       new GuardObstacle(10, 10, this, 0, 0, Game.width, 'x')
       new GuardObstacle(10, 10, this, 0, 0, Game.height, 'y')
       new GuardObstacle(10, 10, this, Game.width, 0, Game.height, 'y')
@@ -72,11 +73,11 @@ class game {
 	 }
     if (isProduction) { 
         let Server = createSecureServer(options)
-        let WSServer = new WebSocketServer({server:Server,backlog:1024, perMessageDeflate:CompressionOptions})
+        let WSServer = new WebSocketServer({server:Server,backlog:1024, perMessageDeflate:{}, maxPayload: 10 * 1024 * 1024})
         Server.listen(2096, "0.0.0.0")
         return WSServer
     }
-    return new WebSocketServer.Server({port:2096,backlog:1024, perMessageDeflate:CompressionOptions})
+    return new WebSocketServer({port:2096,backlog:1024, perMessageDeflate:{}, maxPayload:10 * 1024 * 1024})
   }
   static withDelay(time, previousmessage) {
     let server = game.setupSocketServer()
@@ -250,26 +251,14 @@ class game {
     }
     return enemycount
   }
-  getLastEnemy() {
-    let LastEnemy
-    for (let object of this.objects) {
-        if (object.constructor.name == "obstacle") {
-            LastEnemy = object
-        }
-    }
-    return LastEnemy ? LastEnemy : false
-  }
   handleEnemyCount(){
     let enemyCount = this.getEnemyCount()
     while (enemyCount < (game.enemiesperplayer * game.instance.clients.length)) {
         enemyCount += 1
         new Obstacle(10, 10, game.instance, Object.values(game.instance.playerobjects)[Object.values(game.instance.playerobjects).length - 1])
     }
-    while (enemyCount > (game.enemiesperplayer * game.instance.clients.length)) {
-        let LastEnemy = this.getLastEnemy()
-        if (LastEnemy) { 
-            LastEnemy.destruct()
-        }
+    if (enemyCount > (game.enemiesperplayer * game.instance.clients.length)) {
+        game.instance.enemydestruct = true
     }
   }
   static getRemoteAddress(socket) {
