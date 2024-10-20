@@ -123,7 +123,7 @@ class NetworkingClient {
     static CONNECTED = 1
     static RECONNECTING = 2
     static DISCONNECTED = 3
-    constructor(server, canvas, width, height) {
+    constructor(server, canvas, width, height, connectingtext) {
         this.server = server
         window.networkingclient = this
         this.width = width
@@ -135,7 +135,7 @@ class NetworkingClient {
         this.mousestate = false
         this.mousey = 0
 
-        this.statustext = "Connecting..."
+        this.statustext = connectingtext != null ? connectingtext : "Connecting..."
         this.status = NetworkingClient.CONNECTING
 
         this.connection = new WebSocket(this.server)
@@ -218,8 +218,8 @@ class NetworkingClient {
         
     }
 
-    reconnect(self) {
-        networkingclient = new NetworkingClient(self.server, self.canvas, self.width, self.height)
+    reconnect(self, connectingtext) {
+        networkingclient = new NetworkingClient(self.server, self.canvas, self.width, self.height, connectingtext)
     }
 
     recieveUpdate(request) {
@@ -231,7 +231,7 @@ class NetworkingClient {
             this.clearListeners()
         }
         if (request.type == "reconnect") {
-            setTimeout(this.reconnect, request.time, this)
+            setTimeout(this.reconnect, request.time, this, request.text ? request.text : null)
             this.status = NetworkingClient.RECONNECTING
             this.socketClose()
             this.connection.close()
@@ -239,7 +239,7 @@ class NetworkingClient {
             this.connection.removeEventListener("message", this)
             this.connection.removeEventListener("open", this)
             this.connection.removeEventListener("error", this)
-            this.statustext = "Reconnecting..."
+            this.statustext = request.text ? request.text : "Reconnecting..."
         }
         if (request.type == "bling") {
             window.postMessage({type:"bling", amount:request.amount},"*")

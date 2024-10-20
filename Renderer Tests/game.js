@@ -40,10 +40,7 @@ class Boss {
     update(){
         this.text = "Bryce: " + this.health + "/" + this.maxhealth
         if (this.health <= 0) {
-            let self = this
-            this.destruct().then(function () {
-                self.renderer.FlashMessage("You defeated Bryce! Congratulations, you earned 500 bling!",6000)
-            })
+            this.destruct()
         }
 
         this.cooldown -= 1
@@ -79,21 +76,22 @@ class Boss {
     distance(enemy) {
         return Math.sqrt((enemy.x - this.x)^2 + (enemy.y - this.y)^2)
     }
-    collision (collider,collidee) {
+    collision (collider, collidee) {
         if (collidee.constructor.name == "Player") {
             collidee.health -= 25
         }
     }
-    async destruct() {
+    destruct() {
         this.renderer.removeObject(this.renderer,this)
         let self = this
-        await datahandler.addBling(500)
-        if (self.sean) {
-            self.sean.destruct()
-        }
-        else {
-            self.player.destruct()
-        }
+        datahandler.addBling(500).then(function (){
+            if (self.sean) {
+                self.sean.destruct()
+            }
+            else {
+                self.player.destruct()
+            }
+        })
     }
 }
 class Abhinav {
@@ -121,7 +119,6 @@ class Abhinav {
         this.text = "Greedy Abhinav: " + this.health + "/" + this.maxhealth
         if (this.health <= 0) {
             this.destruct()
-            this.renderer.FlashMessage("Abhinav Died! (You score " + this.player.score + " Camerons' worth :D )",6000)
         }
 
         this.cooldown -= 1
@@ -175,13 +172,10 @@ class Abhinav {
     }
 }
 class Sean {
-    constructor(radius, player, renderer, datahandler) {
-        this.radius = radius
-        this.x = renderer.width/2;
-        this.y = 10;
+    constructor(player, renderer, datahandler) {
         this.datahandler = datahandler
         this.priority = 10
-        this.cooldowntime = 0
+        this.cooldowntime = 60
         let sean = this 
         datahandler.getSeanBullet().then(function (v) {
             sean.cooldowntime = 60/v
@@ -190,8 +184,10 @@ class Sean {
         this.fillStyle = "rgb(0,255,255)"
         this.maxhealth = 400
         this.health = this.maxhealth
-        this.shape = "texture"
-        this.texture = "images/sean.png"
+        this.shape = "polygon"
+        this.apothem = 5
+        this.vertexes = 4
+        //this.texture = "images/sean.png"
         this.renderer = renderer
         this.player = player
         this.score = 0
@@ -203,7 +199,6 @@ class Sean {
         
         if (this.health <= 0) {
             this.destruct()
-            this.renderer.FlashMessage("Sean Died! Your score: " + this.player.score + " Sean's Score: " + this.score,6000)
         }
 
         this.cooldown -= 1
@@ -353,16 +348,14 @@ class Hat {
     }
 }
 class Player {
-    constructor(height, width, renderer, keyhandler, datahandler) {
-        this.height = height;
-        this.width = width;
+    constructor(apothem, renderer, keyhandler, datahandler) {
         this.sean = null
         this.keyhandler = keyhandler
         this.x = renderer.width/2;
         this.sidedirection = 0
         this.updirection = 0
         this.y = renderer.height/2;
-        this.reloadtime = 60
+        this.reloadtime = 5
         if (datahandler) {
             let player = this
             datahandler.getPlayerBullet().then(function (v) {
@@ -381,7 +374,9 @@ class Player {
         this.healtime = 600
         this.heal = this.healtime
         this.score = 0
-        this.shape = "rectangle"
+        this.shape = "polygon"
+        this.apothem = apothem
+        this.vertexes = 4
         let self = this
         if (datahandler) {
             datahandler.getSelectedHat().then(function (hat) {
@@ -389,7 +384,7 @@ class Player {
                     self.hat = new Hat(hat, self, renderer)
                     switch(hat) {
                         case "WhiteHat":
-                            self.healtime /= 1.25
+                            self.healtime = self.healtime/1.25
                             break;
                         case "GreenHat":
                             self.speed *= 1.5
@@ -398,18 +393,19 @@ class Player {
                             self.setBulletSpeed(self.reloadtime/2)
                             break;
                         case "BeaconHat":
-                            self.healtime /= 3
+                            self.healtime/3
                             break;
                         case "PurpleHat":
-                            self.healtime /= 2.5
+                            self.healtime/2.5
                             self.speed *= 1.5
                             break;
                         case "RainbowHat":
-                            self.healtime /= 2.5
+                            self.healtime/2.5
                             self.speed *= 1.5
                             self.setBulletSpeed(self.reloadtime/1.5)
                             break;
                     }
+                    console.log(hat)
                 }
             })
         }
@@ -479,13 +475,13 @@ class Player {
             return
         }
         this.timer = this.reloadtime
-        let CenterX = this.x + this.width/2
-        let CenterY = this.y + this.height/2
+        let CenterX = this.x + this.apothem/4
+        let CenterY = this.y + this.apothem/4
 
         let Y = this.playeraim.y - CenterY
         let X = this.playeraim.x - CenterX
 
-        new Bullet(5, CenterX, CenterY, X/10, Y/10, this, this.renderer, ["Obstacle","Boss","Abhinav"],50)
+        new Bullet(5, CenterX, CenterY, X/20, Y/20, this, this.renderer, ["Obstacle","Boss","Abhinav"],50)
     }
     handleEvent(e) {
         if (e.type != "pointerdown"){
@@ -518,7 +514,6 @@ class Player {
     }
     destruct() {
         this.renderer.removeObject(this.renderer,this)
-        this.renderer.FlashMessage("You Died! Score: " + this.score,600)
     }
     distance(ObjectOne,ObjectTwo) {
         return Math.sqrt(Math.pow(ObjectOne.x - ObjectTwo.x,2) + Math.pow(ObjectOne.y - ObjectTwo.y,2))
@@ -533,8 +528,10 @@ class Bullet {
         this.xrate = xrate
         this.yrate = yrate
         this.priority = 5
-        this.radius = radius
-        this.shape = "circle"
+        //this.radius = radius
+        this.shape = "polygon"
+        this.vertexes = 36
+        this.apothem = radius
         this.owner = owner
         this.fillStyle = "rgb(255,0,0)"
         this.renderer = renderer
@@ -585,7 +582,9 @@ class Obstacle{
         this.priority = 0
         this.fillStyle = "rgb(255,0,255)"
         this.speed = .4
-        this.shape = "rectangle"
+        this.shape = "polygon"
+        this.apothem = width/2
+        this.vertexes = 4
         this.damagetime = 60
         this.health = 50
         this.damage = 50
@@ -677,10 +676,27 @@ class Renderer {
         this.message = null
         this.frames = -1
         this.keyhandler = keyhandler
+        this.pointscache = {}
         this.intervalId = setInterval(this.draw,Math.round(1000/fps),this)
     } 
     destruct() {
         clearInterval(this.intervalId)
+    }
+    calculatePoints(vertexQuantity, apothemLength, X, Y) {
+        //Circle equation: (x-X)^2 + (y-Y)^2 = apothemLength^2
+        //Point on path of circle: x = r * sin(rotation), y = r * cos(rotation)
+        //Rotation = 360/vertexQuantity
+        let Points = []
+        const RotationIncrements = 360/vertexQuantity
+        const StartingOffset = Math.PI/vertexQuantity
+        let currentRotation = 0
+        while (currentRotation < 360) {
+            let x = apothemLength * Math.cos((currentRotation * Math.PI/180) + StartingOffset) + X
+            let y = apothemLength * Math.sin((currentRotation * Math.PI/180) + StartingOffset) + Y
+            Points.push([x,y])
+            currentRotation += RotationIncrements
+        }
+        return Points
     }
     draw(self) {
         self.collisonChecks(self)
@@ -699,8 +715,24 @@ class Renderer {
                 context.fillText(object.text,object.x,object.y + 20)
             }
             context.fillStyle = object.fillStyle
-            if (object.shape == "rectangle"){
-                context.fillRect(object.x,object.y,object.width,object.height)
+            if (object.shape == "polygon"){
+                let points = self.calculatePoints(object.vertexes, object.apothem, object.x, object.y)
+                self.pointscache[object] = points
+                context.beginPath()
+                context.moveTo(points[0][0],points[0][1])
+                for (let point of points.toSpliced(0,1)) {
+                    context.lineTo(point[0],point[1])
+                }
+                context.lineTo(points[0][0],points[0][1])
+                context.fill()
+                context.closePath()
+                /*
+                Debug Code: Show points in Red
+                for (let point of points) {
+                    context.fillStyle = "rgb(255,0,0)"
+                    context.fillRect(point[0],point[1],5,5)
+                }
+                */
             }
             if (object.shape == "circle"){
                 context.beginPath()
@@ -714,72 +746,93 @@ class Renderer {
                 context.drawImage(img,object.x,object.y)
             }
         }
-        if (self.frames > 0 ){
-            context.clearRect(0,0,self.width,self.height)
-            let size
-            if (self.message.length >= 36){
-                size = 16
-            } 
-            else {
-                size = 36
-            }
-            context.font = "sizepx Times New Roman".replace("size",size)
-            context.textAlign = "center"
-            context.textBaseline = "middle"
-            context.fillStyle = "#8aea92"
-            context.fillText(self.message,self.width/2,self.height/2)
-            self.frames -= 1
-        }
     }
     collisonChecks(self) {
-        let cewidth 
-        let ceheight
-        let crwidth
-        let crheight
-        for (let collidee in self.objects) {
-            collidee = self.objects[collidee]
-            if (collidee.shape == "rectangle"){
-                cewidth = collidee.width
-                ceheight = collidee.height
+        for (let collidee of self.objects) {
+            if (collidee.shape != "polygon") {
+                continue
             }
-            if (collidee.shape == "circle"){
-                cewidth = collidee.radius * 2
-                ceheight = collidee.radius * 2
-            }
-            for (let collider in self.objects) {
-                collider = self.objects[collider]
-                if (collidee == collider) {
+            let collideePoints = self.pointscache[collidee] ? self.pointscache[collidee] : self.calculatePoints(collidee.vertexes, collidee.apothem, collidee.x, collidee.y)
+            let unitvectors = []
+            let dotproductsone = []
+            let lastpoint
+            //V^ = V/|V| Unit Vector = Vector/Magnitude
+            //To do a negative reciprocal do x2 - x1/y2-y1 multiply x's by -1
+            for (let point of collideePoints){
+                if (!lastpoint) {
+                    lastpoint = point
                     continue
                 }
-                if (collider.shape == "rectangle"){
-                    crwidth = collider.width
-                    crheight = collider.height
+                let vector = [-1 * (point[1] - lastpoint[1]), point[0] - lastpoint[0]]
+                let magnitude = Math.sqrt(Math.pow(vector[0],2) + Math.pow(vector[1],2))
+                let unitvector = [vector[0]/magnitude,vector[1]/magnitude]
+                unitvectors.push(unitvector)
+                lastpoint = point
+            }
+            //Don't forget to create a unit vector between the last point and the first point
+            let vector = [-1 * (lastpoint[1] - collideePoints[1][1]), lastpoint[0] - collideePoints[0][0]]
+            let magnitude = Math.sqrt(Math.pow(vector[0],2) + Math.pow(vector[1],2))
+            let unitvector = [vector[0]/magnitude,vector[1]/magnitude]
+            unitvectors.push(unitvector)
+            for (let unitvector of unitvectors) {
+                let dotproducts = []
+                for (let point of collideePoints) {
+                    dotproducts.push(point[0]  * unitvector[0] + point[1] * unitvector[1])
                 }
-                if (collider.shape == "circle"){
-                    crwidth = collider.radius * 2
-                    crheight = collider.radius * 2 //Radius is already the "half" width so multiply by two
+                dotproductsone.push(dotproducts)
+            }
+            ObjectsLoop: for (let collider of self.objects) {
+                if (collider.shape != "polygon") {
+                    return
                 }
-                //Implementation of Separating Axis Theorem
-                let AverageXCollidee = (collidee.x + collidee.x + cewidth)/2
-                let AverageXCollider = (collider.x + collider.x + crwidth)/2
-                let AverageYCollidee = (collidee.y + collidee.y + ceheight)/2
-                let AverageYCollider = (collider.y + collider.y + crheight)/2
-
-                let HorizontonalLength  = Math.abs(AverageXCollidee - AverageXCollider)
-                let VerticalLength = Math.abs(AverageYCollidee - AverageYCollider)
-
-                HorizontonalLength -= cewidth/2 + crwidth/2
-                VerticalLength -= ceheight/2 + crheight/2
-
-                if (HorizontonalLength <= 0 && VerticalLength <= 0) {
-                    collider.collision(collider,collidee)
+                if (collidee == collider) {
+                    return
                 }
+                let colliderPoints = self.pointscache[collider] ? self.pointscache[collider] : self.calculatePoints(collider.vertexes, collider.apothem, collider.x, collider.y)
+                let dotproductstwo = []
+                for (let unitvector of unitvectors) {
+                    let dotproducts = []
+                    for (let point of colliderPoints) {
+                        dotproducts.push(point[0] * unitvector[0] + point[1] + unitvector[1])
+                    }
+                    dotproductstwo.push(dotproducts)
+                }
+                for (i = 0; i <= unitvectors.length; i++) {
+                    let onemin = dotproductsone[i][0]
+                    let onemax = dotproductsone[i][0]
+                    let twomin = dotproductstwo[i][0]
+                    let twomax = dotproductstwo[i][0]
+                    for (let product of dotproductsone[i]) {
+                        if (product < onemin) {
+                            onemin = product
+                        }
+                        if (product > onemax){
+                            onemax = product
+                        }
+                    }
+                    for (let product of dotproductstwo[i]) {
+                        if (product < twomin) {
+                            twomin = product
+                        }
+                        if (product > twomax) {
+                            twomax = product
+                        }
+                    }
+                    if (onemin < twomax && onemin > twomin) {
+                        continue ObjectsLoop
+                    }
+                    if (twomin < onemax && twomin > onemin) {
+                        continue ObjectsLoop
+                    }
+                }
+                collider.collision(collider, collidee)
+                console.log(collider,collidee)
+            }
+            const context = this.canvas.getContext("2d")
+            for (let unitvector of unitvectors) {
+                context.beginPath()
             }
         }
-    }
-    FlashMessage(Message, Frames) {
-        this.message = Message
-        this.frames = Frames
     }
     getCanvas() {
         return this.canvas
@@ -980,7 +1033,7 @@ function PracticeMode() {
     canvas.height = 300
     keyhandler = new KeyHandler(renderer)
     renderer = new Renderer(canvas,60,canvas.width,canvas.height,keyhandler)
-    player = new Player(10,10,renderer,keyhandler)
+    player = new Player(5,renderer,keyhandler)
     let x = 0
     while (x < 5){
         new Obstacle(10,10,renderer, player)
@@ -993,12 +1046,12 @@ function SeanMode(datahandler) {
     let canvas = document.createElement("canvas")
     canvas.id = "canvas"
     document.body.appendChild(canvas)
-    canvas.width = 400
-    canvas.height = 300
+    canvas.width = 1000
+    canvas.height = 1000
     keyhandler = new KeyHandler(renderer)
     renderer = new Renderer(canvas,60,canvas.width,canvas.height,keyhandler)
-    player = new Player(10,10,renderer,keyhandler, datahandler)
-    sean = new Sean(5,player,renderer,datahandler)
+    player = new Player(5,renderer,keyhandler)
+    sean = new Sean(player,renderer,datahandler)
     player.sean = sean
     let x = 0
     while (x < 7){
@@ -1076,103 +1129,11 @@ function openPage(page) {
         }
     })
 }
-function processEvents() {
-    let modes = document.getElementById("modes")
-    for (let child of modes.children) {
-        if ('eventRange' in child.dataset) {
-            let EventTime = JSON.parse(child.dataset['eventRange'])
-            let now = new Date()
-            if (EventTime['day']) {
-                if (EventTime['day'].indexOf('-') != -1){
-                    let start = Number(EventTime['day'].split("-")[0])
-                    let end = Number(EventTime['day'].split("-")[1])
-                    if (!(start <= now.getDate() && now.getDate() <= end)) {
-                        continue
-                    }
-                }
-                else if (now.getDate() != EventTime['day']){
-                        continue
-                }
-            }
-            if (EventTime['month']) {
-                if (EventTime['month'].indexOf('-') != -1) {
-                    let start = Number(EventTime['month'].split("-")[0])
-                    let end = Number(EventTime['month'].split("-")[1])
-                    if (!(start <= now.getMonth() && now.getMonth() <= end)) {
-                        continue
-                    }
-                }
-                else if (EventTime['month'] != now.getMonth()){
-                    continue
-                }
-            }
-            if (EventTime['year']){
-                if (EventTime['year'].indexOf('-') != -1) {
-                    let start = Number(EventTime['year'].split("-")[0])
-                    let end = Number(EventTime['year'].split("-")[1])
-                    if (!(start <= now.getFullYear() && now.getFullYear() <= end)) {
-                        continue
-                    } 
-                }
-                else if (EventTime['year'] != now.getFullYear()){
-                    continue
-                }
-            }
-            child.removeAttribute('hidden')
-        }
-    }
-}
 window.addEventListener("load", function (){
-    processEvents()
     datahandler = new DataHandler(false)
     this.document.getElementById("play").addEventListener("click",function (){
-        let modes = document.getElementById("modes")
-        let selectedmode = modes.value
+        let selectedmode = 1
         GAMEMODE = selectedmode
-        switch(selectedmode){
-            case "practice":
-                PracticeMode(datahandler)
-                break;
-            case "1":
-                SeanMode(datahandler)
-                break;
-            case "boss":
-                BossMode(datahandler)
-                break;
-            case "2":
-                datahandler.handleLevel(2).then(function (v) {
-                    if (v) {
-                        LevelTwo(datahandler)
-                    }
-                    else {
-                        alert("You don't own this level! Buy it from the shop.")
-                    }
-                })
-                break;
-            case "3":
-                datahandler.handleLevel(3).then(function (v) {
-                    if (v) {
-                        LevelThree(datahandler)
-                    }
-                    else {
-                        alert("You don't own this level! Buy it from the shop.")
-                    }
-                })
-                break;
-            case "multiplayer":
-                if (Config.MultiplayerClient != "local") {
-                    window.open(Config.MultiplayerClient)
-                }
-                else {
-                    openPage("multiplayer.html")
-                }
-                break;
-        }
-    })
-    datahandler.getBling().then(function (v) {
-        this.document.getElementById("coincounter").innerText = "You have " + v + " bling."
-    })
-    this.document.getElementById("shop").addEventListener("click",function () {
-        openPage("shop.html")
+        SeanMode(datahandler)
     })
 })

@@ -6,8 +6,9 @@ import {performance} from 'node:perf_hooks'
 
 import {Player} from './player.js'
 import {GuardObstacle, Obstacle} from './enemies.js'
+import {Spawn} from './spawn-point.js'
 
-import { ClientServer } from './client-server.js'
+import {ClientServer} from './client-server.js'
 
 import {createServer} from 'http'
 import {createServer as createSecureServer} from 'https'
@@ -29,12 +30,13 @@ class game {
     static width = 1280
     static height = 720
     static enemiesperplayer = 4
-    static SocketTimeOutPeriod = 300000 //TODO Update Socket Time out Period back to 3000 (Changed for debugging purposes)
-    static MinimumRewardPlayers = 1 //TODO Set to 2 before pushing (for testing purposes)
-    static RewardQuantity = 3000
+    static SocketTimeOutPeriod = 300000 
+    static MinimumRewardPlayers = 2
+    static RewardPerPlayer = 1500
     static FPS = 60
-    static TimeBetweenRounds = 30
+    static TimeBetweenRounds = 20
     static WinQuantity = 250
+    static RestartTime = game.FPS * 60 * 30 //Restart every 30 mins
   constructor(server) {
       this.objects = new Array()
       this.message = null
@@ -43,6 +45,7 @@ class game {
       this.clients = []
       this.playerobjects = {}
       this.packettimes = {}
+      this.restarttimer = 0
       game.instance = this
       this.intervalId = setInterval(this.tick,Math.round(1000/this.fps),this)
       let self = this
@@ -59,6 +62,8 @@ class game {
       new GuardObstacle(10, 10, this, 0, 0, Game.height, 'y')
       new GuardObstacle(10, 10, this, Game.width, 0, Game.height, 'y')
       new GuardObstacle(10, 10, this, 0, Game.height, Game.width, 'x')
+      new Spawn(game.width * 1/10, game.height * 5/10, this)
+      new Spawn(game.width * 8/10, game.height * 5/10, this)
   }
   static setupSocketServer() {
 	let CompressionOptions = {
@@ -120,7 +125,16 @@ class game {
   }
 
   getRenderables() {
-    let renderObjects = game.sortObjects(this.objects)
+    let renderObjects = []
+    for (let object of this.objects) {
+        if (object.type != "empty") {
+            renderObjects.push(object)
+        }
+        if (Object.hasOwn(object, "renderparts")) {
+            renderObjects = renderObjects.concat(object.renderparts)
+        }
+    }
+    renderObjects = game.sortObjects(renderObjects)
     let data = []
     for (let key in renderObjects) {
         let object = renderObjects[key] 
@@ -289,64 +303,82 @@ class game {
     }
   }
   tick(self) {
-        if (!self.perfcount) {
-            self.perfcount = 0
-        }
-        if (!self.perfdata) {
-            self.perfdata = 0
-        }
-      let start = performance.now()
-      self.handleEnemyCount()
-      self.collisonChecks(self)
-      let renderObjects = game.sortObjects(self.objects)
-      for (let key in renderObjects) {
-          let object = renderObjects[key] 
-          object.update(object)
-      }
-      for (let remoteAddress in self.playeronly) {
-        let objects = self.playeronly[remoteAddress]
-        for (let object in objects) {
-            object = objects[object]
-            object.update(object)
-        }
-      }
-      let winner = self.isWinner()
-      if (winner) {
+    if (!self.perfcount) {
+        self.perfcount = 0
+    }
+    if (!self.perfdata) {
+        self.perfdata = 0
+    }
+    self.restarttimer += 1
+    if (self.restarttimer >= game.RestartTime) {
         for (let name in self.clients) {
             let r = {}
             r.type = "reconnect"
+            r.text = "Server needs to restart!"
+            r.time = .5 * 1000
+            self.clients[name].send(JSON.stringify(r))
+        }
+        self.server.on('close', function () {
+            setTimeout(game.withDelay, 300, game.TimeBetweenRounds, "Server restarted! ")
+        })
+        self.shutdownServer(self)
+    }
+    let start = performance.now()
+    self.handleEnemyCount()
+    self.collisonChecks(self)
+    let renderObjects = game.sortObjects(self.objects)
+    for (let key in renderObjects) {
+        let object = renderObjects[key] 
+        object.update(object)
+    }
+    for (let remoteAddress in self.playeronly) {
+    let objects = self.playeronly[remoteAddress]
+    for (let object in objects) {
+        object = objects[object]
+        object.update(object)
+    }
+    }
+    let winner = self.isWinner()
+    if (winner) {
+        for (let name in self.clients) {
+            let r = {}
+            r.type = "reconnect"
+            r.text = winner.text + "won! "
             r.time = .5 * 1000
             if (self.playerobjects[Game.getRemoteAddress(self.clients[name])] == winner && self.clients.length >= game.MinimumRewardPlayers) {
-                self.sendBling(self.clients[name], game.RewardQuantity)
+                self.sendBling(self.clients[name], game.RewardPerPlayer * self.clients.length)
             }
             self.clients[name].send(JSON.stringify(r))
         }
-        setTimeout(function () {
-            for (let socket of self.clients) {
-                socket.close()
-            }
-        },100,self.clients)
-	    self.server.on('close', function () {
-            setTimeout(game.withDelay, 300, game.TimeBetweenRounds, winner.text + "won! ")
+        self.server.on('close', function () {
+            setTimeout(game.withDelay, 300, game.TimeBetweenRounds, winner.text + " won! ")
             //game.withDelay(60, winner.text + "won! ")
         })
-        if (self.server._server) {
-            self.server._server.close()
-        }
-        self.server.close()
-        clearInterval(self.intervalId)
-      }
-      self.sendUpdate()
-      self.connectionChecker()
-      let end = performance.now()
-      self.perfdata += 1000/(end-start + 1000/self.fps)
-      self.perfcount += 1
-      if (self.perfcount > 180) {
+        self.shutdownServer(self)
+    }
+    self.sendUpdate()
+    self.connectionChecker()
+    let end = performance.now()
+    self.perfdata += 1000/(end-start + 1000/self.fps)
+    self.perfcount += 1
+    if (self.perfcount > 180) {
         console.log(self.perfdata/self.perfcount + "fps")
         self.perfdata = 0
         self.perfcount = 0
-      }
+    }
   }
+  shutdownServer(self) {
+    setTimeout(function (clients) {
+        for (let socket of clients) {
+            socket.close()
+        }
+    },100,self.clients)
+    if (self.server._server) {
+        self.server._server.close()
+    }
+    self.server.close()
+    clearInterval(self.intervalId)
+  } 
   isWinner() {
     for (let remoteAddress in this.playerobjects) {
         if (this.playerobjects[remoteAddress].score >= game.WinQuantity) {
@@ -363,12 +395,12 @@ class game {
       for (let collidee in self.objects) {
           collidee = self.objects[collidee]
           if (collidee.shape == "rectangle"){
-              cewidth = collidee.width
-              ceheight = collidee.height
+            cewidth = collidee.width
+            ceheight = collidee.height
           }
           if (collidee.shape == "circle"){
-              cewidth = collidee.radius * 2
-              ceheight = collidee.radius * 2
+            cewidth = collidee.radius * 2
+            ceheight = collidee.radius * 2
           }
           for (let collider in self.objects) {
               collider = self.objects[collider]
@@ -376,12 +408,12 @@ class game {
                   continue
               }
               if (collider.shape == "rectangle"){
-                  crwidth = collider.width
-                  crheight = collider.height
+                crwidth = collider.width
+                crheight = collider.height
               }
               if (collider.shape == "circle"){
-                  crwidth = collider.radius * 2
-                  crheight = collider.radius * 2 //Radius is already the half "width" so multiply by two
+                crwidth = collider.radius * 2
+                crheight = collider.radius * 2 //Radius is already the half "width" so multiply by two
               }
               //Implementation of Separating Axis Theorem
               let AverageXCollidee = (collidee.x + collidee.x + cewidth)/2
@@ -392,8 +424,8 @@ class game {
               let HorizontonalLength  = Math.abs(AverageXCollidee - AverageXCollider)
               let VerticalLength = Math.abs(AverageYCollidee - AverageYCollider)
 
-              HorizontonalLength -= cewidth/2 + crwidth/2
-              VerticalLength -= ceheight/2 + crheight/2
+              HorizontonalLength -= (cewidth + crwidth)/2
+              VerticalLength -= (ceheight + crheight)/2
 
               if (HorizontonalLength <= 0 && VerticalLength <= 0) {
                   collider.collision(collider,collidee)

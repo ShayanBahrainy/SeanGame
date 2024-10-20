@@ -150,6 +150,15 @@ class player {
         }
         this.pausetext = new PlayerText(this.renderer, this.text + " (You) died! Rejoining in" + seconds + " seconds", this.remoteAddress, Game.width/2, Game.height/2, seconds, true)
         this.paused = true
+        let spawns = []
+        for (let obj of Game.instance.objects) {
+            if (obj.constructor.name == "spawn") {
+                spawns.push(obj)
+            }
+        }
+        let spawn = spawns[Math.floor(Math.random() * spawns.length)]
+        this.x = spawn.centerx
+        this.y = spawn.centery
         this.pausetimer = Game.instance.fps * seconds
     }
     unpause() {

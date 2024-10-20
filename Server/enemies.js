@@ -52,6 +52,15 @@ class obstacle{
             self.renderer.enemydestruct = false
             self.destruct()
         }
+        if (self.target.paused == true) {
+            let players = []
+            for (let obj of Game.instance.objects) {
+                if (obj.constructor.name == "player" && obj != self.target) {players.push(obj)}
+            }
+            if (players.length > 0) {
+                self.target = players[Math.floor(Math.random() * players.length)]
+            }
+        }
         if (self.health <= 0) {
             self.killvalue ? self.lastenemy.score += self.killvalue : self.lastenemy.score += 1
             self.renderer.removeObject(self.renderer,self)
@@ -60,7 +69,7 @@ class obstacle{
             }
         }
         if (self.target == null) {
-            return;
+            return
         }
         if (self.target.x > self.x){
             self.sidedirection = 1

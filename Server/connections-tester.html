@@ -30,10 +30,10 @@
                         let y = 0
                         if (document.getElementById("AI").value) {
                             key = PotentialKeys[Math.floor(Math.random() * PotentialKeys.length)]
-                            x = Math.random() * 100 * (Math.random() > .5 ? -1 : 1)
-                            y = Math.random() * 100 * (Math.random() > .5 ? -1 : 1)
+                            x = Math.random() * 1000 * (Math.random() > .5 ? -1 : 1)
+                            y = Math.random() * 1000 * (Math.random() > .5 ? -1 : 1)
                         }
-                        connection.send(`{"Keys":["${key}"],"MousePos":{"X":${x},"Y":${y}},"MouseState":true}`)
+                        connection.send(`{"Keys":["W","A"],"MousePos":{"X":${x},"Y":${y}},"MouseState":true}`)
                         alive += 1
                     }
                     if (connection.readyState == 2 || connection.readyState == 3) {
@@ -42,7 +42,7 @@
                 }
                 document.getElementById("connections").innerText = "Connections: " + alive
             }
-            setInterval(updateConnections, 1)
+            setInterval(updateConnections, 1000/60)
         </script>
     </head>
     <body>
