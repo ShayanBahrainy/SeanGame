@@ -105,9 +105,13 @@ class DataHandler{
             return this.hatprices[type]
         }
         if (type.indexOf("Exponential") != -1) {
+            //Equation
+            //Y=6X^4+75
+            //Formula
+            //ceil(6((y/6 - 12)^1/4)^4)+12
             type = type.replace("Exponential","")
             let Value = await this.getValue(type)
-            return Math.ceil(Math.pow(Math.pow(Value,1/2) + 2,3))
+            return Math.ceil(6 * Math.pow((Math.pow(Value/6 - 12,1/4)),4)) + 12
         }
         if (type == "BuyLevel") {
             return this.levelprices[await this.getLevel() + 1] ? this.levelprices[await this.getLevel() + 1] : Infinity

@@ -343,7 +343,7 @@ class game {
         for (let name in self.clients) {
             let r = {}
             r.type = "reconnect"
-            r.text = winner.text + "won! "
+            r.text = winner.text + " won! "
             r.time = .5 * 1000
             if (self.playerobjects[Game.getRemoteAddress(self.clients[name])] == winner && self.clients.length >= game.MinimumRewardPlayers) {
                 self.sendBling(self.clients[name], game.RewardPerPlayer * self.clients.length)
@@ -352,7 +352,7 @@ class game {
         }
         self.server.on('close', function () {
             setTimeout(game.withDelay, 300, game.TimeBetweenRounds, winner.text + " won! ")
-            //game.withDelay(60, winner.text + "won! ")
+            //game.withDelay(60, winner.text + " won! ")
         })
         self.shutdownServer(self)
     }
@@ -387,51 +387,74 @@ class game {
     }
     return false
   }
+  calulateSpatialMap(self) {
+    let SpatialMap = []
+    for (let object of self.objects){
+        let X = Math.floor(object.x/25)
+        if (SpatialMap[X] == null) {
+            SpatialMap[X] = []
+        }
+        let Y = Math.floor(object.y/25)
+        if (SpatialMap[X][Y] == null) {
+            SpatialMap[X][Y] = []
+        }
+        SpatialMap[X][Y].push(object)
+    }
+    return SpatialMap
+  }
+  narrowPhaseChecks(objects) {
+    let cewidth 
+    let ceheight
+    let crwidth
+    let crheight
+    for (let collidee in objects) {
+        collidee = objects[collidee]
+        if (collidee.shape == "rectangle"){
+        cewidth = collidee.width
+        ceheight = collidee.height
+        }
+        if (collidee.shape == "circle"){
+        cewidth = collidee.radius * 2
+        ceheight = collidee.radius * 2
+        }
+        for (let collider in objects) {
+            collider = objects[collider]
+            if (collidee == collider) {
+                continue
+            }
+            if (collider.shape == "rectangle"){
+            crwidth = collider.width
+            crheight = collider.height
+            }
+            if (collider.shape == "circle"){
+            crwidth = collider.radius * 2
+            crheight = collider.radius * 2 //Radius is already the half "width" so multiply by two
+            }
+            //Implementation of Separating Axis Theorem
+            let AverageXCollidee = (collidee.x + collidee.x + cewidth)/2
+            let AverageXCollider = (collider.x + collider.x + crwidth)/2
+            let AverageYCollidee = (collidee.y + collidee.y + ceheight)/2
+            let AverageYCollider = (collider.y + collider.y + crheight)/2
+
+            let HorizontonalLength  = Math.abs(AverageXCollidee - AverageXCollider)
+            let VerticalLength = Math.abs(AverageYCollidee - AverageYCollider)
+
+            HorizontonalLength -= (cewidth + crwidth)/2
+            VerticalLength -= (ceheight + crheight)/2
+
+            if (HorizontonalLength <= 0 && VerticalLength <= 0) {
+                collider.collision(collider,collidee)
+            }
+        }
+    }
+  }
   collisonChecks(self) {
-      let cewidth 
-      let ceheight
-      let crwidth
-      let crheight
-      for (let collidee in self.objects) {
-          collidee = self.objects[collidee]
-          if (collidee.shape == "rectangle"){
-            cewidth = collidee.width
-            ceheight = collidee.height
-          }
-          if (collidee.shape == "circle"){
-            cewidth = collidee.radius * 2
-            ceheight = collidee.radius * 2
-          }
-          for (let collider in self.objects) {
-              collider = self.objects[collider]
-              if (collidee == collider) {
-                  continue
-              }
-              if (collider.shape == "rectangle"){
-                crwidth = collider.width
-                crheight = collider.height
-              }
-              if (collider.shape == "circle"){
-                crwidth = collider.radius * 2
-                crheight = collider.radius * 2 //Radius is already the half "width" so multiply by two
-              }
-              //Implementation of Separating Axis Theorem
-              let AverageXCollidee = (collidee.x + collidee.x + cewidth)/2
-              let AverageXCollider = (collider.x + collider.x + crwidth)/2
-              let AverageYCollidee = (collidee.y + collidee.y + ceheight)/2
-              let AverageYCollider = (collider.y + collider.y + crheight)/2
-
-              let HorizontonalLength  = Math.abs(AverageXCollidee - AverageXCollider)
-              let VerticalLength = Math.abs(AverageYCollidee - AverageYCollider)
-
-              HorizontonalLength -= (cewidth + crwidth)/2
-              VerticalLength -= (ceheight + crheight)/2
-
-              if (HorizontonalLength <= 0 && VerticalLength <= 0) {
-                  collider.collision(collider,collidee)
-              }
-          }
-      }
+    //Our spatial maps are 2d arrays where first dimension is x, second is y, and the values are arrays of objects at that coordinate
+    //Spatial Map = [[[Object1], [Object2]], [[Object3], [Object4,Object5]]
+    let SpatialMap = self.calulateSpatialMap(self)
+    SpatialMap.map(function (Ys) {
+        Ys.map(self.narrowPhaseChecks, self)
+    }, self)
   }
   FlashMessage(Message, Frames) {
     this.message = Message

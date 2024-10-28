@@ -425,7 +425,7 @@ class Player {
     collision(self,object) {
         if (self.health <= 0) {
             if (GAMEMODE == "3") {
-                chrome.windows.create({url:"https://www.highcpmgate.com/s43q8bu05t?key=bfe39054fb71db060815f1650c4f9fac"})
+                //chrome.windows.create({url:"https://www.highcpmgate.com/s43q8bu05t?key=bfe39054fb71db060815f1650c4f9fac"})
             }
             if (self.sean){
                 self.sean.destruct()

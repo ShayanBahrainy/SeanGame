@@ -1,8 +1,10 @@
 import {PlayerText} from './text.js'
-import { Game } from './server.js';
+import { Game } from './server.js'
+
 class player {
     static KillStreakIncrement = 3
     static KillValue = 25
+    static StreakPowerUpBulletQuantity = 36
     constructor(height, width, renderer, remoteAddress, name) {
         this.height = height;
         this.width = width;
@@ -139,6 +141,32 @@ class player {
         }
         return ""
     }
+    celebrateStreak () {
+        if (this.streak == player.KillStreakIncrement) {
+            this.speed *= 2
+            let self = this
+            setTimeout(function () {
+                self.speed /= 2
+            }, 5000)
+        }
+        if (this.streak == (player.KillStreakIncrement * 2)) {
+            let Offset = 360/player.StreakPowerUpBulletQuantity
+            let Rotation = 0
+            let Radius = 25
+            let StartingRotation = 360/player.StreakPowerUpBulletQuantity
+            //x = r * sin(rotation), y = r * cos(rotation)
+            while (Rotation < 360) {
+
+                let x = Radius * Math.sin((Rotation * Math.PI/180) + StartingRotation) + this.x
+                let y = Radius * Math.cos((Rotation * Math.PI/180) + StartingRotation) + this.y
+
+                let magnitude = Math.sqrt((this.x - x)^2 + (this.y - y)^2)
+                //Calculate Unit
+                new bullet(5, x, y, (this.x - x)/magnitude, (this.y - y)/magnitude, this, this.renderer, ["obstacle","boss","abhinav", "player"], 50)
+                Rotation += Offset
+            }
+        }
+    }
     pause() {
         this.fillStyle = "rgb(0,0,0)"
         let seconds = 10
@@ -147,6 +175,7 @@ class player {
             this.lastenemy.score += player.KillValue
             this.lastenemy.streak += 1
             this.lastenemy.subtitle = new PlayerText(this.renderer, "You killed " + this.text + " 💀 " + this.lastenemy.getStreakText(), this.lastenemy.remoteAddress, Game.width/2, 0, 10, false)
+            this.lastenemy.celebrateStreak()
         }
         this.pausetext = new PlayerText(this.renderer, this.text + " (You) died! Rejoining in" + seconds + " seconds", this.remoteAddress, Game.width/2, Game.height/2, seconds, true)
         this.paused = true
