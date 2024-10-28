@@ -376,7 +376,7 @@ class Player {
         this.score = 0
         this.shape = "polygon"
         this.apothem = apothem
-        this.vertexes = 4
+        this.vertexes = 3
         let self = this
         if (datahandler) {
             datahandler.getSelectedHat().then(function (hat) {
@@ -571,19 +571,17 @@ class Bullet {
     }
 }
 class Obstacle{
-    constructor(height, width, renderer, target, datahandler) {
-        this.height = height;
-        this.width = width;
+    constructor(apothem, renderer, target, datahandler) {
         this.target = target
-        this.x = this.generateX();
+        this.x = this.generateX()
         this.sidedirection = 0
         this.updirection = 0
-        this.y = this.generateY();
+        this.y = this.generateY()
         this.priority = 0
         this.fillStyle = "rgb(255,0,255)"
         this.speed = .4
         this.shape = "polygon"
-        this.apothem = width/2
+        this.apothem = apothem
         this.vertexes = 4
         this.damagetime = 60
         this.health = 50
@@ -626,9 +624,9 @@ class Obstacle{
         return Y
     }
     update(self) {
-        if (this.health <= 0) {
+        if (self.health <= 0) {
             self.renderer.removeObject(self.renderer,self)
-            new Obstacle(10, 10, self.renderer, self.lastenemy ? self.lastenemy : self.target, self.datahandler)
+            new Obstacle(self.apothem, self.renderer, self.lastenemy ? self.lastenemy : self.target, self.datahandler)
         }
         if (self.target == null) {
             return;
@@ -752,85 +750,14 @@ class Renderer {
             if (collidee.shape != "polygon") {
                 continue
             }
-            let collideePoints = self.pointscache[collidee] ? self.pointscache[collidee] : self.calculatePoints(collidee.vertexes, collidee.apothem, collidee.x, collidee.y)
-            let unitvectors = []
-            let dotproductsone = []
-            let lastpoint
-            //V^ = V/|V| Unit Vector = Vector/Magnitude
-            //To do a negative reciprocal do x2 - x1/y2-y1 multiply x's by -1
-            for (let point of collideePoints){
-                if (!lastpoint) {
-                    lastpoint = point
+            for (let collider of self.objects) {
+                if (collider.shape != "polygon") {
                     continue
                 }
-                let vector = [-1 * (point[1] - lastpoint[1]), point[0] - lastpoint[0]]
-                let magnitude = Math.sqrt(Math.pow(vector[0],2) + Math.pow(vector[1],2))
-                let unitvector = [vector[0]/magnitude,vector[1]/magnitude]
-                unitvectors.push(unitvector)
-                lastpoint = point
-            }
-            //Don't forget to create a unit vector between the last point and the first point
-            let vector = [-1 * (lastpoint[1] - collideePoints[1][1]), lastpoint[0] - collideePoints[0][0]]
-            let magnitude = Math.sqrt(Math.pow(vector[0],2) + Math.pow(vector[1],2))
-            let unitvector = [vector[0]/magnitude,vector[1]/magnitude]
-            unitvectors.push(unitvector)
-            for (let unitvector of unitvectors) {
-                let dotproducts = []
-                for (let point of collideePoints) {
-                    dotproducts.push(point[0]  * unitvector[0] + point[1] * unitvector[1])
+                let dist = Math.sqrt(Math.pow(collider.x - collidee.x,2) + Math.pow(collider.y - collidee.y,2))
+                if (dist <= collidee.apothem + collider.apothem) {
+                    collidee.collision(collidee, collider)
                 }
-                dotproductsone.push(dotproducts)
-            }
-            ObjectsLoop: for (let collider of self.objects) {
-                if (collider.shape != "polygon") {
-                    return
-                }
-                if (collidee == collider) {
-                    return
-                }
-                let colliderPoints = self.pointscache[collider] ? self.pointscache[collider] : self.calculatePoints(collider.vertexes, collider.apothem, collider.x, collider.y)
-                let dotproductstwo = []
-                for (let unitvector of unitvectors) {
-                    let dotproducts = []
-                    for (let point of colliderPoints) {
-                        dotproducts.push(point[0] * unitvector[0] + point[1] + unitvector[1])
-                    }
-                    dotproductstwo.push(dotproducts)
-                }
-                for (i = 0; i <= unitvectors.length; i++) {
-                    let onemin = dotproductsone[i][0]
-                    let onemax = dotproductsone[i][0]
-                    let twomin = dotproductstwo[i][0]
-                    let twomax = dotproductstwo[i][0]
-                    for (let product of dotproductsone[i]) {
-                        if (product < onemin) {
-                            onemin = product
-                        }
-                        if (product > onemax){
-                            onemax = product
-                        }
-                    }
-                    for (let product of dotproductstwo[i]) {
-                        if (product < twomin) {
-                            twomin = product
-                        }
-                        if (product > twomax) {
-                            twomax = product
-                        }
-                    }
-                    if (onemin < twomax && onemin > twomin) {
-                        continue ObjectsLoop
-                    }
-                    if (twomin < onemax && twomin > onemin) {
-                        continue ObjectsLoop
-                    }
-                }
-                collider.collision(collider, collidee)
-                console.log(collider,collidee)
-            }
-            const context = this.canvas.getContext("2d")
-            for (let unitvector of unitvectors) {
-                context.beginPath()
             }
         }
     }
@@ -843,7 +770,7 @@ class Renderer {
     removeObject(self, object){
         var index = self.objects.indexOf(object)
         if (index != -1){
-            delete self.objects[index]
+            self.objects.splice(index, 1)
         }
     }
     addObject(object){
@@ -1033,10 +960,10 @@ function PracticeMode() {
     canvas.height = 300
     keyhandler = new KeyHandler(renderer)
     renderer = new Renderer(canvas,60,canvas.width,canvas.height,keyhandler)
-    player = new Player(5,renderer,keyhandler)
+    player = new Player(10,renderer,keyhandler)
     let x = 0
     while (x < 5){
-        new Obstacle(10,10,renderer, player)
+        new Obstacle(10,renderer, player)
         x +=1
     }
 }
@@ -1055,7 +982,7 @@ function SeanMode(datahandler) {
     player.sean = sean
     let x = 0
     while (x < 7){
-        new Obstacle(10,10,renderer, player)
+        new Obstacle(10,renderer, player)
         x +=1
     }
 }
@@ -1134,6 +1061,6 @@ window.addEventListener("load", function (){
     this.document.getElementById("play").addEventListener("click",function (){
         let selectedmode = 1
         GAMEMODE = selectedmode
-        SeanMode(datahandler)
+        PracticeMode(datahandler)
     })
 })
