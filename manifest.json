@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Sean's Game",
-    "description": "It's Sean's Gaming Time, yo!",
+    "description": "Protect, and fight for Sean. Sean makes a fun leader. ",
     "version": "3.3.0",
     "omnibox" : {"keyword" : "sean"},
     "icons": {

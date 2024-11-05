@@ -91,6 +91,7 @@ class game {
   }
 
 static selectGameMode(estimatedclientcount) {
+    console.log(estimatedclientcount)
     let random = Math.floor(Math.random() * 100)
     if (random <= 25) {
         if (estimatedclientcount < 2) {

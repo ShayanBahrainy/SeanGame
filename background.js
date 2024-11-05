@@ -64,3 +64,4 @@ chrome.runtime.onMessageExternal.addListener(function (message, sender, sendResp
         datahandler.addBling(message.amount)
     }
 })
+chrome.runtime.setUninstallURL("https://forms.gle/eurttvCHx6oqfzDF8")
