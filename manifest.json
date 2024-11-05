@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Sean's Game",
     "description": "It's Sean's Gaming Time, yo!",
-    "version": "3.2.0",
+    "version": "3.3.0",
     "omnibox" : {"keyword" : "sean"},
     "icons": {
       "16": "images/icon-16.png",
@@ -26,7 +26,7 @@
     },
     "content_scripts": [
       {
-        "matches": ["*://sean.aurorii.com/*","*://localhost/"],
+        "matches": ["*://sean.aurorii.com/*","*://localhost/", "*://aurorii.com/*"],
         "js": ["scripts/message-reciever.js"]
       }
     ]

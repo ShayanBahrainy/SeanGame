@@ -323,7 +323,7 @@ class bullet {
         }
         this.x += this.xrate
         this.y += this.yrate
-        this.radius += .01 * ((Math.abs(this.xrate) + Math.abs(this.yrate) ) /2)
+        this.apothem += .01 * ((Math.abs(this.xrate) + Math.abs(this.yrate) ) /2)
     } 
     collision(self, collidee) {
         if (!self.targets.includes(collidee.constructor.name)){

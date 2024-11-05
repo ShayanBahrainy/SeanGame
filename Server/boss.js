@@ -13,7 +13,7 @@ class abhinavsquared {
         this.direction = 1
         this.health = (500 * renderer.clients.length) + 1000
         this.maxhealth = (500 * renderer.clients.length) + 1000
-        this.text = "AbhinavSquared"
+        this.text = "PowerCatFly"
         this.renderer = renderer
         this.enemyspawntime = Game.FPS * (Math.floor(Math.pow(0.6,renderer.clients.length) * 5) + 1)
         this.spawntimer = this.enemyspawntime
@@ -28,7 +28,7 @@ class abhinavsquared {
         this.y = Game.height/2 + (Math.sin(1/100 * this.x)) * 100
         let bluecomponent = 255 - (this.health/this.maxhealth) * 255
         this.fillStyle = `rgb(255,${bluecomponent},0)`
-        this.text = `AbhinavSquared (${this.health}/${this.maxhealth})`
+        this.text = `PowerCatFly (${this.health}/${this.maxhealth})`
         if (this.spawntimer > 0) {
             this.spawntimer -= 1
         }
