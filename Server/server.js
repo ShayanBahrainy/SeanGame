@@ -17,7 +17,7 @@ import {createServer as createSecureServer} from 'https'
 import { readFileSync } from 'node:fs'
 
 
-let isProduction = false
+let isProduction = true
 let options
 if (isProduction) {
     options = {
@@ -91,8 +91,10 @@ class game {
   }
 
 static selectGameMode(estimatedclientcount) {
+	console.log(estimatedclientcount)
+	return game.GameModes.Boss
     let random = Math.floor(Math.random() * 100)
-    if (random <= 25) {
+    if (random <= 0) {
         if (estimatedclientcount < 2) {
             return game.GameModes.Normal
         }
