@@ -145,11 +145,13 @@ class NetworkingClient {
         this.connection.addEventListener("open", this)
         this.connection.addEventListener("error", this)
 
-        document.addEventListener("mousemove",this)
+        window.addEventListener("message", this)
+
+        document.addEventListener("mousemove", this)
         document.addEventListener("pointerdown",this)
         document.addEventListener("pointerup", this)
-        document.addEventListener("keydown",this)
-        document.addEventListener("keyup",this)
+        document.addEventListener("keydown", this)
+        document.addEventListener("keyup",this) 
     }
     socketClose() {
         clearInterval(this.tick)
@@ -171,11 +173,42 @@ class NetworkingClient {
         }
     }
     clearListeners() {
-        document.removeEventListener("mousemove",this)
-        document.removeEventListener("pointerdown",this)
+        document.removeEventListener("mousemove", this)
+        document.removeEventListener("pointerdown", this)
         document.removeEventListener("pointerup", this)
-        document.removeEventListener("keydown",this)
-        document.removeEventListener("keyup",this)
+        document.removeEventListener("keydown", this)
+        document.removeEventListener("keyup", this)
+        window.removeEventListener("message", this)
+    }
+    static calculatePoints(vertexQuantity, apothemLength, X, Y, rotation) {
+        //Circle equation: (x-X)^2 + (y-Y)^2 = apothemLength^2
+        //Point on path of circle: x = r * sin(rotation), y = r * cos(rotation)
+        //Rotation = 360/vertexQuantity
+        let Points = []
+        const RotationIncrements = 360/vertexQuantity
+        let StartingOffset = Math.PI/vertexQuantity
+        if (rotation) {
+            StartingOffset += rotation * Math.PI/180
+        }
+        let currentRotation = 0
+        while (currentRotation < 360) {
+            let x = apothemLength * Math.cos((currentRotation * Math.PI/180) + StartingOffset) + X
+            let y = apothemLength * Math.sin((currentRotation * Math.PI/180) + StartingOffset) + Y
+            Points.push([x,y])
+            currentRotation += RotationIncrements
+        }
+        return Points
+    }
+    drawConvex (context, vertexes, apothem, x, y, rotation) {
+        let points = NetworkingClient.calculatePoints(vertexes, apothem, x, y, rotation)
+        context.beginPath()
+        context.moveTo(points[0][0],points[0][1])
+        for (let point of points.toSpliced(0,1)) {
+            context.lineTo(point[0],point[1])
+        }
+        context.lineTo(points[0][0],points[0][1])
+        context.fill()
+        context.closePath()
     }
     draw(data) {
         const context = this.canvas.getContext("2d")
@@ -199,11 +232,16 @@ class NetworkingClient {
                 context.closePath()
                 context.fill()
             }
-            if (object.shape == "texture") {
+            if (object.type == "texture") {
                 let img = new Image(object.width,object.height)
                 img.src = object.texture
                 context.drawImage(img,object.x,object.y)
             }
+            if (object.type != "polygon") {
+                continue
+            }
+
+            this.drawConvex(context, object.vertexes, object.apothem, object.x, object.y, object.rotation)
         } 
     }
     set statustext(value) {
@@ -244,7 +282,29 @@ class NetworkingClient {
         if (request.type == "bling") {
             window.postMessage({type:"bling", amount:request.amount},"*")
         }
+        if (request.type == "win") {
+            window.postMessage({type:"win", players:request.players},"*")
+        }
     }
+
+    requestEquipData() {
+        window.postMessage({type:"equipRequest"})
+    }
+
+    sendEquip(hat) {
+        let Equip = {
+            Type: "Equip",
+            Hat: hat
+        }
+        this.connection.send(JSON.stringify(Equip))
+    }
+
+    receiveMessage(message) {
+        if (message.type == "equipData") {
+            this.sendEquip(message.hat)
+        }
+    }
+
     handleEvent(ev) {
         if (ev.type == "pointerdown") {
             this.mousestate = true
@@ -259,12 +319,18 @@ class NetworkingClient {
             this.mousey = ev.clientY - rect.top
         }
         if (ev.type == "message") {
-            this.recieveUpdate(JSON.parse(ev.data))
-            this.lastMessage = new Date().getTime()
+            if (ev.target instanceof Window) {
+                this.receiveMessage(ev.data)
+            }
+            if (ev.target instanceof WebSocket) {
+                this.recieveUpdate(JSON.parse(ev.data))
+                this.lastMessage = new Date().getTime()
+            }
         }
         if (ev.type == "open") {
             this.statustext = ""
             this.status = NetworkingClient.CONNECTED
+            this.requestEquipData()
             this.tick = setInterval(this.sendUpdate, 1000/60, this)
         }
         if (ev.type == "close") {
@@ -291,6 +357,7 @@ class NetworkingClient {
     }
     sendUpdate(self) {
         let Input = {
+            Type: "Play",
             Keys: self.keys,
             MousePos: {X: self.mousex, Y: self.mousey},
             MouseState: self.mousestate

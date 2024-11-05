@@ -5,14 +5,11 @@ class player {
     static KillStreakIncrement = 3
     static KillValue = 25
     static StreakPowerUpBulletQuantity = 36
-    constructor(height, width, renderer, remoteAddress, name) {
-        this.height = height;
-        this.width = width;
+    static DeathTeamScoreSubtraction = 25 //How much to subtract from the team's score when a player dies
+    constructor(renderer, remoteAddress, name) {
         this.remoteAddress = remoteAddress
         this.sean = null
         this.x = Game.width/2;
-        this.sidedirection = 0
-        this.updirection = 0
         this.y = Game.height/2;
         this.reloadtime = Game.instance.fps / 2
         this.timer = 0
@@ -24,13 +21,22 @@ class player {
         this.healtime = 10 * Game.instance.fps
         this.heal = this.healtime
         this.score = 0
+        this.renderparts = [
+            {shape: "rectangle", x: this.x + 3, y: this.y, height: 5, width: 12.5, fillStyle:"rgb(255,0,255)", priority: 11},
+            {shape: "rectangle", x: this.x + 3, y: this.y, height: 12.5, width: 5, fillStyle:"rgb(255,0,255)", priority: 11},
+
+        ]
         this.scoretext = new PlayerText(renderer, "0", remoteAddress, (Game.width/10) * 9, 0, false, false)
         this.nametag = new PlayerText(renderer, name, remoteAddress, (Game.width/10) * 1, 0, false, false)
         this.text = name
-        this.shape = "rectangle" 
+        this.shape = "polygon" 
+        this.vertexes = 12
+        this.apothem = 7
         this.renderer = renderer
         this.playeraim = new playeraim(this,3,10,renderer,remoteAddress)
         this.streak = 0
+        this.hat = null
+        this.targets = this.renderer.gamemode == Game.GameModes.Normal ? ["obstacle","boss","abhinav", "player"] : ["obstacle","boss","bossobstacle", "abhinavsquared"]
         renderer.addObject(this)
     }
     set subtitle(playertext) {
@@ -46,6 +52,11 @@ class player {
         return
     }
     update() {
+        this.renderparts[0].x = this.x + 9
+        this.renderparts[0].y = this.y - 5
+        this.renderparts[1].x = this.x + 9
+        this.renderparts[1].y = this.y - 5
+
         if (this.health <= 0 && !this.paused) {
             this.pause()
         }
@@ -57,7 +68,7 @@ class player {
             this.pausetext.text = this.text + " (You) died! Rejoining in " + Math.round(this.pausetimer/Game.instance.fps) + " seconds."
             return
         }
-        this.scoretext.text = this.score
+        this.scoretext.text = this.renderer.gamemode == Game.GameModes.Normal ? this.score : this.renderer.teamscore
         const XBorderOne = 0
         const XBorderTwo = XBorderOne + Game.width
         const YBorderOne = 0
@@ -86,6 +97,12 @@ class player {
             this.fillStyle = "rgb(255, 215, 0)"
         }
     }
+    equipHat (hat) {
+        if (this.hat) {
+            this.hat.destruct()
+        }
+        this.hat = new Hat(hat, this, this.renderer)
+    }
     fireBullet() {
         if (this.timer >= 0) {
             return
@@ -94,13 +111,12 @@ class player {
             return
         }
         this.timer = this.reloadtime
-        let CenterX = this.x + this.width/2
-        let CenterY = this.y + this.height/2
+        let CenterX = this.x + this.apothem/2
+        let CenterY = this.y + this.apothem/2
 
         let Y = this.playeraim.y - CenterY
         let X = this.playeraim.x - CenterX
-
-        new bullet(5, CenterX, CenterY, X/20, Y/20, this, this.renderer, ["obstacle","boss","abhinav", "player"],50)
+        new bullet(10, CenterX + 9, CenterY, X/20, Y/20, this, this.renderer, this.targets,50)
     }
     handleInput(data) {
         if (this.paused) {
@@ -132,6 +148,9 @@ class player {
     }
     destruct() {
         this.playeraim.destruct()
+        if (this.hat) {
+            this.hat.destruct()
+        }
         this.renderer.removeObject(this.renderer, this)
         delete this
     }
@@ -167,15 +186,23 @@ class player {
             }
         }
     }
+
+    killedMe(enemy) {
+        enemy.score += player.KillValue
+        enemy.streak += 1
+        enemy.subtitle = new PlayerText(this.renderer, "You killed " + this.text + " 💀 " + enemy.getStreakText(), enemy.remoteAddress, Game.width/2, 0, 10, false)
+        enemy.celebrateStreak()
+    }
+
     pause() {
         this.fillStyle = "rgb(0,0,0)"
         let seconds = 10
         this.streak = 0
         if (this.lastenemy && this.lastenemy.constructor.name == "player") {
-            this.lastenemy.score += player.KillValue
-            this.lastenemy.streak += 1
-            this.lastenemy.subtitle = new PlayerText(this.renderer, "You killed " + this.text + " 💀 " + this.lastenemy.getStreakText(), this.lastenemy.remoteAddress, Game.width/2, 0, 10, false)
-            this.lastenemy.celebrateStreak()
+            this.killedMe(this.lastenemy)
+        }
+        if (this.renderer.gamemode == Game.GameModes.Boss){
+            this.renderer.teamscore -= player.DeathTeamScoreSubtraction
         }
         this.pausetext = new PlayerText(this.renderer, this.text + " (You) died! Rejoining in" + seconds + " seconds", this.remoteAddress, Game.width/2, Game.height/2, seconds, true)
         this.paused = true
@@ -186,8 +213,10 @@ class player {
             }
         }
         let spawn = spawns[Math.floor(Math.random() * spawns.length)]
-        this.x = spawn.centerx
-        this.y = spawn.centery
+        if (spawn) {
+            this.x = spawn.centerx
+            this.y = spawn.centery
+        }
         this.pausetimer = Game.instance.fps * seconds
     }
     unpause() {
@@ -204,6 +233,69 @@ class player {
         return Math.sqrt(Math.pow(ObjectOne.x - ObjectTwo.x,2) + Math.pow(ObjectOne.y - ObjectTwo.y,2))
     }
 }
+class hat {
+    constructor(type, player, renderer){
+        this.apothem = 10
+        this.shape = "polygon"
+        this.vertexes = 3
+        this.rotation = 90
+        this.type = type
+        this.priority = 0
+        this.player = player
+        this.x = 0
+        this.y = 0
+        this.renderer = renderer
+        this.r = 0
+        this.g = 0
+        this.b = 0
+        switch (type) {
+            case ("WhiteHat"):
+                this.r = 255, this.b = 255, this.g = 255
+                break;
+            case ("GreenHat"):
+                this.fillStyle = "rgb(0,255,0)"
+                this.g = 255
+                break;
+            case ("BlueHat"):
+                this.fillStyle = "rgb(0,0,255)"
+                this.b = 255
+                break;
+            case ("BeaconHat"):
+                this.fillStyle = "rgb(0,0,0)"
+                break;
+            case ("PurpleHat"):
+                this.fillStyle = "rgb(255,0,255)"
+                this.r = 255
+                this.b = 255
+                break;
+            case ("RainbowHat"):
+                this.fillStyle = "rgb(0,0,0)"
+                break;
+        }
+        renderer.addObject(this)
+    }
+    update() {
+        if (this.type == "BeaconHat") {
+            this.r >= 255 ? this.r = 0 : this.r += 1
+            this.g >= 255 ? this.g = 0 : this.g += 1
+            this.b >= 255 ? this.b = 0 : this.b += 1
+        }
+        if (this.type == "RainbowHat") {
+            this.r >= 255 ? this.r = 0 : this.r += 1
+            this.g >= 255 ? this.g = 0 : this.g += 2
+            this.b >= 255 ? this.b = 0 : this.b += 3
+        }
+        this.x = this.player.x
+        this.y = this.player.y - 10
+        this.fillStyle = "rgb(" + this.r + "," + this.g + "," + this.b + ")"
+    }
+    collision () {
+
+    }
+    destruct() {
+        this.renderer.removeObject(this.renderer, this)
+    }
+}
 class bullet {
     constructor(radius, x, y, xrate, yrate, owner, renderer, targets, damage){
         this.x = x
@@ -214,7 +306,9 @@ class bullet {
         this.yrate = yrate
         this.priority = 5
         this.radius = radius
-        this.shape = "circle"
+        this.shape = "polygon"
+        this.vertexes = 3
+        this.apothem = radius
         this.owner = owner
         this.fillStyle = "rgb(255,0,0)"
         this.renderer = renderer
@@ -294,3 +388,4 @@ class playeraim {
 export const Player = player
 export const PlayerAim = playeraim
 export const Bullet = bullet
+export const Hat = hat

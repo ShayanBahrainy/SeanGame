@@ -9,14 +9,16 @@
             color: #8aea92; 
             margin-bottom: 10%; 
             position: absolute; 
-            top: 5%;
+            top: 7%;
+            left: 7%;
         }
         .Hats {
             background: #3f3244; 
             color: #8aea92; 
             margin-bottom: 10%; 
             position: absolute; 
-            top: 5%; 
+            top: 7%;
+            left: 7%; 
         }
         .buy {
             background-color: #3f3244; 
@@ -66,10 +68,16 @@
         .hidden {
             display: none;
         }
+        .BackButton {
+            position: absolute;
+            top: 2%;
+            left: 2%;
+        }
         </style>
     </head>
     <body style="background-color: #2f2235; height: 400px; width: 400px;">
         <div id="menu">
+            <img src="/images/back.png" height="16" width="16" title="Go back!" id="backbutton" class="BackButton"></img>
             <select id="upgrades" class="Upgrades" >
                 <option value="" selected disabled hidden>Upgrades</option>
                 <option value="SeanBulletExponential">Sean's Bullet Speed</option>
@@ -77,6 +85,7 @@
                 <option value="PlayerHealth">Get Health</option>
                 <option value="HireSean">Hire Sean</option>
                 <option value="BuyLevel">Upgrade your Stage</option>
+                <option value="MultiplayerFactor">Upgrade Multiplayer Payouts</option>
             </select>
             <select id="hats" class="Hats hidden">
                 <option value="" selected disabled hidden>Hats</option>

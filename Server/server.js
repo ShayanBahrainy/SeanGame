@@ -7,7 +7,7 @@ import {performance} from 'node:perf_hooks'
 import {Player} from './player.js'
 import {GuardObstacle, Obstacle} from './enemies.js'
 import {Spawn} from './spawn-point.js'
-
+import {AbhinavSquared} from './boss.js'
 import {ClientServer} from './client-server.js'
 
 import {createServer} from 'http'
@@ -37,34 +37,70 @@ class game {
     static TimeBetweenRounds = 20
     static WinQuantity = 250
     static RestartTime = game.FPS * 60 * 30 //Restart every 30 mins
-  constructor(server) {
-      this.objects = new Array()
-      this.message = null
-      this.frames = -1
-      this.fps = game.FPS
-      this.clients = []
-      this.playerobjects = {}
-      this.packettimes = {}
-      this.restarttimer = 0
-      game.instance = this
-      this.intervalId = setInterval(this.tick,Math.round(1000/this.fps),this)
-      let self = this
-      readFile("names.txt").then(function (V) {
-        V = V.toString()
-        self.names = V.split("\n")
-      })
-      this.server = server ? server : game.setupSocketServer()
-      this.server.on('connection', this.newClient)
-      this.enemies = []
-      this.playeronly = {}
-      this.enemydestruct = false //Enemies will check, and if flag is true, will self-destruct on next tick
-      new GuardObstacle(10, 10, this, 0, 0, Game.width, 'x')
-      new GuardObstacle(10, 10, this, 0, 0, Game.height, 'y')
-      new GuardObstacle(10, 10, this, Game.width, 0, Game.height, 'y')
-      new GuardObstacle(10, 10, this, 0, Game.height, Game.width, 'x')
-      new Spawn(game.width * 1/10, game.height * 5/10, this)
-      new Spawn(game.width * 8/10, game.height * 5/10, this)
+    static GameModes = {
+        Normal : 0,
+        Boss : 1,
+    }
+    static ScoreIncreaseTime = game.FPS * 30
+  constructor(server, estimatedclientcount) {
+    this.objects = new Array()
+    this.message = null
+    this.frames = -1
+    this.fps = game.FPS
+    this.clients = []
+    this.playerobjects = {}
+    this.packettimes = {}
+    this.restarttimer = 0
+    this.gamemode = game.selectGameMode(estimatedclientcount)
+    game.instance = this
+    this.intervalId = setInterval(this.tick,Math.round(1000/this.fps),this)
+    let self = this
+    readFile("names.txt").then(function (V) {
+    V = V.toString()
+    self.names = V.split("\n")
+    })
+    this.server = server ? server : game.setupSocketServer()
+    this.server.on('connection', this.newClient)
+    this.enemies = []
+    this.playeronly = {}
+    this.enemydestruct = false //Enemies will check, and if flag is true, will self-destruct on next tick
+    this.setupGamemode()
   }
+
+  setupGamemode() {
+    switch (this.gamemode){
+        case game.GameModes.Normal:
+            new GuardObstacle(10, 10, this, 0, 0, Game.width, 'x')
+            new GuardObstacle(10, 10, this, 0, 0, Game.height, 'y')
+            new GuardObstacle(10, 10, this, Game.width, 0, Game.height, 'y')
+            new GuardObstacle(10, 10, this, 0, Game.height, Game.width, 'x')
+            new Spawn(game.width * 1/10, game.height * 5/10, this)
+            new Spawn(game.width * 8/10, game.height * 5/10, this)
+            break
+        case game.GameModes.Boss:
+            let self = this
+            setTimeout(
+                () => {
+                    self.boss = new AbhinavSquared(game.width/2, game.height/2, this)
+                }, 5000)
+            //this.boss = new AbhinavSquared(game.width/2,game.height/2,this)
+            this.teamscore = 50 * this.clients.length + 100
+            this.scoreincreasetime = game.ScoreIncreaseTime
+            break
+    }
+  }
+
+static selectGameMode(estimatedclientcount) {
+    let random = Math.floor(Math.random() * 100)
+    if (random <= 25) {
+        if (estimatedclientcount < 2) {
+            return game.GameModes.Normal
+        }
+        return game.GameModes.Boss
+    }
+    return game.GameModes.Normal
+  }
+
   static setupSocketServer() {
 	let CompressionOptions = {
 		 zlibDeflateOptions: {
@@ -84,7 +120,7 @@ class game {
     }
     return new WebSocketServer({port:2096,backlog:1024, perMessageDeflate:{}, maxPayload:10 * 1024 * 1024})
   }
-  static withDelay(time, previousmessage) {
+  static withDelay(time, previousmessage, estimatedclientcount) {
     let server = game.setupSocketServer()
     function newClient(socket) {
         let r =  {}
@@ -118,7 +154,7 @@ class game {
         else {
             server.clients.forEach(sendReconnect)
             server.off('connection', newClient)
-            return new game(server)
+            return new game(server, estimatedclientcount ? estimatedclientcount : 0)
         }
     }
     setTimeout(sendAll, 1000)
@@ -160,6 +196,14 @@ class game {
             render.width = object.width
             render.height = object.height
             render.src = object.texture
+        }
+        if (object.shape == "polygon") {
+            render.type = "polygon"
+            render.apothem = object.apothem
+            render.vertexes = object.vertexes
+            if (Object.hasOwn(object, "rotation")) {
+                render.rotation = object.rotation
+            }
         }
         data.push(render)
     }
@@ -224,10 +268,19 @@ class game {
         socket.send(JSON.stringify(request))
     }
   }
+
   sendBling(socket, amount) {
     let request = {
         type : "bling",
         amount : amount
+    }
+    socket.send(JSON.stringify(request))
+  }
+
+  sendWin(socket) {
+    let request = {
+        type : "win",
+        players : this.clients.length
     }
     socket.send(JSON.stringify(request))
   }
@@ -244,7 +297,7 @@ class game {
     let name = game.instance.generateName()
     game.instance.clients.push(socket)
     game.instance.playeronly[remoteAddress] = []
-    game.instance.playerobjects[remoteAddress] = new Player(10, 10, game.instance, remoteAddress, name)
+    game.instance.playerobjects[remoteAddress] = new Player(game.instance, remoteAddress, name)
     game.instance.packettimes[remoteAddress] = new Date().getTime()
     socket.on('close', function() {
         game.instance.playerobjects[remoteAddress].destruct()
@@ -253,7 +306,12 @@ class game {
     });
     socket.on('message', function (data) {
         data = JSON.parse(data)
-        game.instance.handleInput(socket, data)
+        if (data.Type == "Play") {
+            game.instance.handleInput(socket, data)
+        }
+        if (data.Type == "Equip") {
+            game.instance.playerobjects[remoteAddress].equipHat(data.Hat)
+        }
     })
   }
   getEnemyCount() {
@@ -319,12 +377,14 @@ class game {
             self.clients[name].send(JSON.stringify(r))
         }
         self.server.on('close', function () {
-            setTimeout(game.withDelay, 300, game.TimeBetweenRounds, "Server restarted! ")
+            setTimeout(game.withDelay, 300, game.TimeBetweenRounds, "Server restarted! ", self.clients.length)
         })
         self.shutdownServer(self)
     }
     let start = performance.now()
-    self.handleEnemyCount()
+    if (self.gamemode == Game.GameModes.Normal) {
+        self.handleEnemyCount()
+    }
     self.collisonChecks(self)
     let renderObjects = game.sortObjects(self.objects)
     for (let key in renderObjects) {
@@ -332,26 +392,62 @@ class game {
         object.update(object)
     }
     for (let remoteAddress in self.playeronly) {
-    let objects = self.playeronly[remoteAddress]
-    for (let object in objects) {
-        object = objects[object]
-        object.update(object)
+        let objects = self.playeronly[remoteAddress]
+        for (let object in objects) {
+            object = objects[object]
+            object.update(object)
+        }
     }
+    if (self.gamemode == Game.GameModes.Boss){
+        if (self.scoreincreasetime <= 0) {
+            self.teamscore += 2 * 25 * self.clients.length
+            self.scoreincreasetime = Game.ScoreIncreaseTime
+        }
+        else {
+            self.scoreincreasetime -= 1
+        }
+        if (self.teamscore <= 0) {
+            for (let name in self.clients) {
+                let r = {}
+                r.type = "reconnect"
+                r.text = " Y'all losers. "
+                r.time = .5 * 1000           
+                self.clients[name].send(JSON.stringify(r))
+            }
+            self.server.on('close', function () {
+                setTimeout(game.withDelay, 300, game.TimeBetweenRounds, " Y'all losers. ", self.clients.length)
+            })
+            self.shutdownServer(self)
+        }
     }
     let winner = self.isWinner()
     if (winner) {
-        for (let name in self.clients) {
-            let r = {}
-            r.type = "reconnect"
-            r.text = winner.text + " won! "
-            r.time = .5 * 1000
-            if (self.playerobjects[Game.getRemoteAddress(self.clients[name])] == winner && self.clients.length >= game.MinimumRewardPlayers) {
-                self.sendBling(self.clients[name], game.RewardPerPlayer * self.clients.length)
+        if (self.gamemode == Game.GameModes.Normal) {
+            for (let name in self.clients) {
+                let r = {}
+                r.type = "reconnect"
+                r.text = winner.text + " won! "
+                r.time = .5 * 1000
+                if (self.playerobjects[Game.getRemoteAddress(self.clients[name])] == winner && self.clients.length >= game.MinimumRewardPlayers) {
+                    //self.sendBling(self.clients[name], game.RewardPerPlayer * self.clients.length)
+                    self.sendWin(self.clients[name])
+                    r.text += " (You)"
+                }
+                self.clients[name].send(JSON.stringify(r))
             }
-            self.clients[name].send(JSON.stringify(r))
+        }
+        if (self.gamemode == Game.GameModes.Boss) {
+            for (let name in self.clients) {
+                let r = {}
+                r.type = "reconnect"
+                r.text = " Y'all won! "
+                r.time = .5 * 1000
+                self.sendBling(self.clients[name], 750 * self.clients.length + 1000)            
+                self.clients[name].send(JSON.stringify(r))
+            }
         }
         self.server.on('close', function () {
-            setTimeout(game.withDelay, 300, game.TimeBetweenRounds, winner.text + " won! ")
+            setTimeout(game.withDelay, 300, game.TimeBetweenRounds, winner.text ? winner.text + " won! " : " Y'all won! ", self.clients.length)
             //game.withDelay(60, winner.text + " won! ")
         })
         self.shutdownServer(self)
@@ -380,6 +476,13 @@ class game {
     clearInterval(self.intervalId)
   } 
   isWinner() {
+    if (this.gamemode == Game.GameModes.Boss) {
+        //For the first five seconds the boss doesn't spawn in to let everyone else spawn in before determining it's health
+        if (this.boss) {
+            return this.boss.health <= 0
+        }
+        return false 
+    }
     for (let remoteAddress in this.playerobjects) {
         if (this.playerobjects[remoteAddress].score >= game.WinQuantity) {
             return this.playerobjects[remoteAddress]
@@ -417,6 +520,10 @@ class game {
         cewidth = collidee.radius * 2
         ceheight = collidee.radius * 2
         }
+        if (collidee.shape == "polygon") {
+            cewidth = collidee.apothem * 2
+            ceheight = collidee.apothem * 2
+        }
         for (let collider in objects) {
             collider = objects[collider]
             if (collidee == collider) {
@@ -429,6 +536,10 @@ class game {
             if (collider.shape == "circle"){
             crwidth = collider.radius * 2
             crheight = collider.radius * 2 //Radius is already the half "width" so multiply by two
+            }
+            if (collider.shape == "polygon") {
+                crwidth = collider.apothem * 2
+                crheight = collider.apothem * 2
             }
             //Implementation of Separating Axis Theorem
             let AverageXCollidee = (collidee.x + collidee.x + cewidth)/2

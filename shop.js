@@ -13,6 +13,11 @@ class DataHandler{
         this.hatprices["BeaconHat"] = 20000
         this.hatprices["PurpleHat"] = 50000
         this.hatprices["RainbowHat"] = 100000
+        this.multiplayerfactorprices = {}
+        this.multiplayerfactorprices[2] = 2000
+        this.multiplayerfactorprices[3] = 4000
+        this.multiplayerfactorprices[4] = 8000
+        this.multiplayerfactorprices[5] = 16000
     }
     async HireSean() {
         let data = await chrome.storage.local.get()
@@ -86,6 +91,28 @@ class DataHandler{
         }
         return 1
     }
+
+    async MultiplayerFactor() {
+        let data = await chrome.storage.local.get()
+        if (!data["MultiplayerFactor"]) {
+            data["MultiplayerFactor"] = 2
+        }
+        else {
+            data["MultiplayerFactor"] += 1
+        }
+        await chrome.storage.local.set(data)
+    }
+
+    async getMultiplayerFactor() {
+        const data = await chrome.storage.local.get()
+        if (data["MultiplayerFactor"]) {
+            return data["MultiplayerFactor"]
+        }
+        else {
+            return 1
+        }
+    }
+
     async getPrice(type) {
         if (type == "PlayerHealth") {
             let Value = await this.getValue(type)
@@ -116,7 +143,16 @@ class DataHandler{
         if (type == "BuyLevel") {
             return this.levelprices[await this.getLevel() + 1] ? this.levelprices[await this.getLevel() + 1] : Infinity
         }
+        if (type == "MultiplayerFactor") {
+            let self = this
+            let factor = await this.getMultiplayerFactor()
+            if (!self.multiplayerfactorprices[factor + 1]) {
+                return Infinity
+            }
+            return self.multiplayerfactorprices[factor + 1]
+        }
     }
+    
     async BuyLevel() {
         let data = await chrome.storage.local.get()
         if (!data["level"]) {
@@ -187,6 +223,9 @@ function openPage(page) {
 }
 window.addEventListener("load",function (e) {
     let datahandler = new DataHandler(false)
+    this.document.getElementById("backbutton").addEventListener("click", function (ev) {
+        openPage("popup.html")
+    })
     this.document.getElementById("shoptoggle").addEventListener("click", ToggleShop)
     this.document.getElementById("inventory").addEventListener("click", function () {
         openPage("inventory.html")

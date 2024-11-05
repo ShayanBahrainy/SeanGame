@@ -376,7 +376,7 @@ class Player {
         this.score = 0
         this.shape = "polygon"
         this.apothem = apothem
-        this.vertexes = 3
+        this.vertexes = 36
         let self = this
         if (datahandler) {
             datahandler.getSelectedHat().then(function (hat) {
@@ -405,7 +405,6 @@ class Player {
                             self.setBulletSpeed(self.reloadtime/1.5)
                             break;
                     }
-                    console.log(hat)
                 }
             })
         }
@@ -530,7 +529,7 @@ class Bullet {
         this.priority = 5
         //this.radius = radius
         this.shape = "polygon"
-        this.vertexes = 36
+        this.vertexes = 3
         this.apothem = radius
         this.owner = owner
         this.fillStyle = "rgb(255,0,0)"
