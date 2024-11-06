@@ -11,8 +11,8 @@ class abhinavsquared {
         this.apothem = 20
         this.fillStyle = "rgb(255,0,0)"
         this.direction = 1
-        this.health = (1000 * renderer.clients.length) + 1000
-        this.maxhealth = (1000 * renderer.clients.length) + 1000
+        this.health = (1500 * renderer.clients.length) + 1000
+        this.maxhealth = (1500 * renderer.clients.length) + 1000
         this.text = "PowerCatFly"
         this.renderer = renderer
         this.enemyspawntime = Game.FPS * .5
@@ -25,7 +25,7 @@ class abhinavsquared {
         if (this.x >= Game.width || this.x <= 0) {
             this.direction *= -1
         }
-        this.y = Game.height/2 + (Math.sin(1/100 * this.x)) * 100
+        this.y = Game.height/2 + (Math.sin(1/100 * this.x) + Math.cos(1/40 * this.x)) * 100
         let bluecomponent = 255 - (this.health/this.maxhealth) * 255
         this.fillStyle = `rgb(255,${bluecomponent},0)`
         this.text = `PowerCatFly (${this.health}/${this.maxhealth})`
@@ -55,10 +55,10 @@ class bossobstacle{
         this.updirection = 0
         this.y = y
         this.priority = 0
-        this.fillStyle = "rgb(255,0,0)"
+        this.fillStyle = "rgb(255,127,0)"
         this.speed = .4
         this.health = 50
-        this.shoottime = Game.FPS
+        this.shoottime = Game.FPS/2
         this.shoottimer = this.shoottime
         this.deathtime = Game.FPS * 1
         this.deathtimer = this.deathtime

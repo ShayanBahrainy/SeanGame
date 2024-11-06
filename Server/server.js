@@ -17,7 +17,7 @@ import {createServer as createSecureServer} from 'https'
 import { readFileSync } from 'node:fs'
 
 
-let isProduction = true
+let isProduction = false
 let options
 if (isProduction) {
     options = {
@@ -91,15 +91,12 @@ class game {
   }
 
 static selectGameMode(estimatedclientcount) {
-	console.log(estimatedclientcount)
-	return game.GameModes.Boss
     let random = Math.floor(Math.random() * 100)
-    if (random <= 0) {
-        if (estimatedclientcount < 2) {
-            return game.GameModes.Normal
-        }
+    if (random <= 25) {
+        console.log("Boss!")
         return game.GameModes.Boss
     }
+    console.log("Normal!")
     return game.GameModes.Normal
   }
 
@@ -120,7 +117,7 @@ static selectGameMode(estimatedclientcount) {
         Server.listen(2096, "0.0.0.0")
         return WSServer
     }
-    return new WebSocketServer({port:2096,backlog:1024, perMessageDeflate:{}, maxPayload:10 * 1024 * 1024})
+    return new WebSocketServer({port:2096,backlog:1024, perMessageDeflate:{}, maxPayload: 10 * 1024 * 1024})
   }
   static withDelay(time, previousmessage, estimatedclientcount) {
     let server = game.setupSocketServer()
@@ -565,9 +562,19 @@ static selectGameMode(estimatedclientcount) {
     //Our spatial maps are 2d arrays where first dimension is x, second is y, and the values are arrays of objects at that coordinate
     //Spatial Map = [[[Object1], [Object2]], [[Object3], [Object4,Object5]]
     let SpatialMap = self.calulateSpatialMap(self)
+    for (let Ys of SpatialMap) {
+        if (!Ys) {
+            continue
+        }
+        for (let Y of Ys) {
+            self.narrowPhaseChecks(Y)
+        }
+    }
+    /*
     SpatialMap.map(function (Ys) {
         Ys.map(self.narrowPhaseChecks, self)
     }, self)
+    */
   }
   FlashMessage(Message, Frames) {
     this.message = Message
@@ -632,6 +639,6 @@ else {
     httpServer.listen(80)
 }
 
-game.withDelay(5)
+game.withDelay(1)
 
 export const Game = game

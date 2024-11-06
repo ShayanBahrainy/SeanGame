@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Sean's Game",
     "description": "Protect, and fight for Sean. Sean makes a fun leader. ",
-    "version": "3.3.0",
+    "version": "3.3.1",
     "omnibox" : {"keyword" : "sean"},
     "icons": {
       "16": "images/icon-16.png",
