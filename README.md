@@ -12,8 +12,8 @@ The multiplayer client is very dumb, essentially it's just a video feed, but it 
 
 I create *connections-tester.html* to help me test how the server would operate under different loads, this is because I wouldn't be able to test multiplayer features in an actual multiplayer environment until I released an update. This didn't do much for gameplay testing, but it helped me optimize the server to allow many people online at once.
 ## Contributing
-If you are considering contributing, I would love it if you could make the server safer, by stopping it from instinctively trusting packets recieved. Currently, if you send any malformed JSON the server will crash. This should be an easy fix but I never got around to it. 
+If you are considering contributing, I would love it if you could make the server safer, by stopping it from trusting packets recieved by default. Currently, if you send any malformed JSON the server will crash. This should be an easy fix but I never got around to it. 
 
-Similarily, having some system for keeping track of the timing of the packets from the client would be great. Right now, the server justs trusts the client to send keypress packets at the right time. This could be exploited by someone maliciously, but the game has never grown to the point where that would become an issue. 
+Similarily, having some system for keeping track of the timing of the packets from the client would be great. Right now, the server just trusts the client to send keypress packets at the right time. This could be exploited by someone maliciously, but the game has never grown to the point where that would become an issue. 
 
 I'll try to review pull requests/issues in a timely manner.
