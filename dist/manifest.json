@@ -1,0 +1,42 @@
+{
+    "manifest_version": 3,
+    "name": "Game of Sean",
+    "description": "Protect, and fight for Sean. Sean makes a fun leader. ",
+    "version": "3.5.0",
+    "omnibox" : {"keyword" : "sean"},
+    "icons": {
+      "16": "images/icon-16.png",
+      "128": "images/icon-128.png"
+    },
+    "permissions" : ["storage", "declarativeNetRequest"],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_icon": {
+        "128": "images/icon-128.png"
+      },
+      "default_popup": "popup.html"
+
+    },
+    "externally_connectable": {
+      "ids": ["ongopdkhbjhcnklaegfcfibfbehkkaak"],
+      "matches": ["http://sean.aurorii.com/*", "https://sean.aurorii.com/*"],
+      "accepts_tls_channel_id": false
+    },
+    "host_permissions": [
+      "\u003Call_urls\u003E"
+    ],
+    "content_scripts": [
+      {
+        "matches": ["*://sean.aurorii.com/*","*://localhost/", "*://aurorii.com/*"],
+        "js": ["messagereceiver.js"]
+      },
+      {
+        "matches": ["<all_urls>"],
+        "js": ["content_start_mellowtel.js"],
+        "run_at": "document_start",
+        "all_frames": true
+      }
+    ]
+  }
