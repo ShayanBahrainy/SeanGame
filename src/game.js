@@ -60,7 +60,7 @@ class Boss {
 
         for (let object in objects){
             object = objects[object]
-            if (object.constructor.name == "Player"){
+            if (object instanceof Player){
                 enemies.push(object)
             }
         } 
@@ -76,14 +76,14 @@ class Boss {
             let PositiveNegative = [1,-1]
             let Y = (enemy.y - this.y) + Math.random() * 45 * PositiveNegative[Math.round(Math.random())]
             let X = (enemy.x - this.x) + Math.random() * 45 * PositiveNegative[Math.round(Math.random())]
-            new Bullet(5, this.x, this.y, X/20, Y/20, this, this.renderer, ["Player"],100)
+            new Bullet(5, this.x, this.y, X/20, Y/20, this, this.renderer, [Player],100)
         } 
     }
     distance(enemy) {
         return Math.sqrt((enemy.x - this.x)^2 + (enemy.y - this.y)^2)
     }
     collision (collider,collidee) {
-        if (collidee.constructor.name == "Player") {
+        if (collidee instanceof Player) {
             collidee.health -= 25
         }
     }
@@ -138,7 +138,7 @@ class Abhinav {
 
         for (let object in objects){
             object = objects[object]
-            if (object.constructor.name == "Player" || object.constructor.name == "Sean"){
+            if (object instanceof Player || object instanceof Sean){
                 enemies.push(object)
             }
         } 
@@ -154,14 +154,14 @@ class Abhinav {
             let PositiveNegative = [1,-1]
             let Y = (enemy.y - this.y) + Math.random() * 45 * PositiveNegative[Math.round(Math.random())]
             let X = (enemy.x - this.x) + Math.random() * 45 * PositiveNegative[Math.round(Math.random())]
-            new Bullet(5, this.x, this.y, X/40, Y/40, this, this.renderer, ["Player","Sean"],50)
+            new Bullet(5, this.x, this.y, X/40, Y/40, this, this.renderer, [Player,Sean],50)
         } 
     }
     distance(enemy) {
         return Math.sqrt((enemy.x - this.x)^2 + (enemy.y - this.y)^2)
     }
     collision (collider,collidee) {
-        if (collidee.constructor.name == "Player") {
+        if (collidee instanceof Player) {
             collidee.health -= 25
         }
     }
@@ -194,7 +194,8 @@ class Sean {
         this.maxhealth = 400
         this.health = this.maxhealth
         this.shape = "texture"
-        this.texture = "images/sean.png"
+        this.texture = new Image
+        this.texture.src = "images/sean.png"
         this.renderer = renderer
         this.player = player
         this.score = 0
@@ -215,7 +216,7 @@ class Sean {
 
         for (let object in objects){
             object = objects[object]
-            if (object.constructor.name == "Obstacle" || object.constructor.name == "Boss" || object.constructor.name == "Abhinav"){
+            if (object instanceof Obstacle || object instanceof Boss || object instanceof Abhinav){
                 enemies.push(object)
             }
         } 
@@ -230,7 +231,7 @@ class Sean {
             this.cooldown = this.cooldowntime
             let Y = enemy.y - this.y
             let X = enemy.x - this.x
-            new Bullet(5, this.x, this.y, X/20, Y/20, this, this.renderer, ["Obstacle","Boss","Abhinav"], 50)
+            new Bullet(5, this.x, this.y, X/20, Y/20, this, this.renderer, [Obstacle,Boss,Abhinav], 50)
         } 
     }
     distance(enemy) {
@@ -488,7 +489,7 @@ class Player {
         let Y = this.playeraim.y - CenterY
         let X = this.playeraim.x - CenterX
 
-        new Bullet(5, CenterX, CenterY, X/10, Y/10, this, this.renderer, ["Obstacle","Boss","Abhinav"],50)
+        new Bullet(5, CenterX, CenterY, X/10, Y/10, this, this.renderer, [Obstacle,Boss,Abhinav],50)
     }
     handleEvent(e) {
         if (e.type != "pointerdown"){
@@ -554,13 +555,18 @@ class Bullet {
         this.y += this.yrate 
     } 
     collision(self, collidee) {
-        if (!self.targets.includes(collidee.constructor.name)){
+        /*
+        console.log("Checking collision:", collidee, self);
+        console.log("Class Match:", collidee.constructor.name, self.target.constructor.name);
+        console.log("Instanceof Check:", collidee instanceof self.target.constructor);
+        */
+        if (!self.targets.includes(collidee.constructor)){
             return
         }
         if (self.collided.indexOf(collidee) != -1) {
             return
         }
-        if (collidee.constructor.name != "Boss") {
+        if (!(collidee instanceof Boss)) {
             if (!collidee.killvalue) {
                 self.owner.score += 1
             }
@@ -660,12 +666,12 @@ class Obstacle{
         this.damagetimer -= 1
     }
     collision (self,object){
-        if (object.constructor.name == "Player") {
+        if (object instanceof Player) {
             self.target = object
             object.updirection = -object.updirection
             object.sidedirection = -object.sidedirection
         }
-        if (object.constructor.name == self.target.constructor.name && self.damagetimer < 0 ) {
+        if (object instanceof self.target.constructor && self.damagetimer < 0 ) {
             object.health -= self.damage
             self.damagetimer = self.damagetime
         }
@@ -712,9 +718,7 @@ class Renderer {
                 context.fill()
             }
             if (object.shape == "texture") {
-                let img = new Image(object.width,object.height)
-                img.src = object.texture
-                context.drawImage(img,object.x,object.y)
+                context.drawImage(object.texture,object.x,object.y)
             }
         }
         if (self.frames > 0 ){
@@ -996,8 +1000,8 @@ function SeanMode(datahandler) {
     let canvas = document.createElement("canvas")
     canvas.id = "canvas"
     document.body.appendChild(canvas)
-    canvas.width = 400
-    canvas.height = 300
+    canvas.width = 1280
+    canvas.height = 800
     keyhandler = new KeyHandler(renderer)
     renderer = new Renderer(canvas,60,canvas.width,canvas.height,keyhandler)
     player = new Player(10,10,renderer,keyhandler, datahandler)

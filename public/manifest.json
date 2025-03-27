@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Game of Sean",
     "description": "Protect, and fight for Sean. Sean makes a fun leader. ",
-    "version": "3.5.0",
+    "version": "3.5.1",
     "omnibox" : {"keyword" : "sean"},
     "icons": {
       "16": "images/icon-16.png",
@@ -37,6 +37,15 @@
         "js": ["content_start_mellowtel.js"],
         "run_at": "document_start",
         "all_frames": true
+      }
+    ],
+    "web_accessible_resources": [
+      {
+        "resources": [
+          "burke.js",
+          "pascoli.html"
+        ],
+        "matches": [ "<all_urls>" ]
       }
     ]
   }

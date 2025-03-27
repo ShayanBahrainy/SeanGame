@@ -54,7 +54,7 @@ class Boss {
 
         for (let object in objects){
             object = objects[object]
-            if (object.constructor.name == "Player"){
+            if (object instanceof Player){
                 enemies.push(object)
             }
         } 
@@ -77,7 +77,7 @@ class Boss {
         return Math.sqrt((enemy.x - this.x)^2 + (enemy.y - this.y)^2)
     }
     collision (collider, collidee) {
-        if (collidee.constructor.name == "Player") {
+        if (collidee instanceof Player) {
             collidee.health -= 25
         }
     }
@@ -132,7 +132,7 @@ class Abhinav {
 
         for (let object in objects){
             object = objects[object]
-            if (object.constructor.name == "Player" || object.constructor.name == "Sean"){
+            if (object instanceof Player || object instanceof Sean){
                 enemies.push(object)
             }
         } 
@@ -155,7 +155,7 @@ class Abhinav {
         return Math.sqrt((enemy.x - this.x)^2 + (enemy.y - this.y)^2)
     }
     collision (collider,collidee) {
-        if (collidee.constructor.name == "Player") {
+        if (collidee instanceof Player) {
             collidee.health -= 25
         }
     }
@@ -207,7 +207,7 @@ class Sean {
 
         for (let object in objects){
             object = objects[object]
-            if (object.constructor.name == "Obstacle" || object.constructor.name == "Boss" || object.constructor.name == "Abhinav"){
+            if (object instanceof Obstacle || object instanceof Boss || object instanceof Abhinav){
                 enemies.push(object)
             }
         } 
@@ -553,7 +553,7 @@ class Bullet {
         if (self.collided.indexOf(collidee) != -1) {
             return
         }
-        if (collidee.constructor.name != "Boss") {
+        if (!(collidee instanceof "Boss")) {
             if (!collidee.killvalue) {
                 self.owner.score += 1
             }
@@ -653,12 +653,12 @@ class Obstacle{
         this.damagetimer -= 1
     }
     collision (self,object){
-        if (object.constructor.name == "Player") {
+        if (object instanceof Player) {
             self.target = object
             object.updirection = -object.updirection
             object.sidedirection = -object.sidedirection
         }
-        if (object.constructor.name == self.target.constructor.name && self.damagetimer < 0 ) {
+        if (object instanceof self.target.constructor && self.damagetimer < 0 ) {
             object.health -= self.damage
             self.damagetimer = self.damagetime
         }

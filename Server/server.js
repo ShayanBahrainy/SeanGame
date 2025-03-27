@@ -316,7 +316,7 @@ static selectGameMode(estimatedclientcount) {
   getEnemyCount() {
     let enemycount = 0
     for (let object of this.objects) {
-        if (object.constructor.name == "obstacle") {
+        if (object instanceof Obstacle) {
             enemycount += 1
         }
     }
