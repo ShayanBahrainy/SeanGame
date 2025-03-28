@@ -1,6 +1,6 @@
 {
   "name": "seangame",
-  "version": "3.5.0",
+  "version": "3.5.2",
   "description": "Welcome to the repository for Sean's Game. I have currently put this project on the back burner to pursue other things, but feel free to open issues, and pull requests. ## Chrome Extension To load this as a chrome extension, go to chrome://settings, and toggle Developer Mode to on, and click *Load Unpacked*, then select the folder containing the code.  The extension has been built from the start to comply with Manifest V3. ## Multiplayer Server The server can be run via NodeJs. ## Technical challenges I built the whole engine up from scratch using nothing but the default HTML5 Canvas, and Javascript. It's object oriented, and is driven by the *Renderer* class, or its counterpart *Game* on the server.",
   "main": "index.js",
   "scripts": {

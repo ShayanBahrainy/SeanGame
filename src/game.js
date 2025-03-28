@@ -1000,8 +1000,8 @@ function SeanMode(datahandler) {
     let canvas = document.createElement("canvas")
     canvas.id = "canvas"
     document.body.appendChild(canvas)
-    canvas.width = 1280
-    canvas.height = 800
+    canvas.width = 400
+    canvas.height = 300
     keyhandler = new KeyHandler(renderer)
     renderer = new Renderer(canvas,60,canvas.width,canvas.height,keyhandler)
     player = new Player(10,10,renderer,keyhandler, datahandler)
