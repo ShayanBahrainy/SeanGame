@@ -70,7 +70,7 @@ chrome.runtime.onInstalled.addListener(async function(details) {
     }
     if (details.reason == "update") {
         const settingsLink = await mellowtel.generateSettingsLink();
-        window.open(settingsLink);
+        chrome.tabs.create({ url: settingsLink });
     }
 });
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
