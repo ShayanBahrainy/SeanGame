@@ -1,5 +1,5 @@
 # Sean's Game
-Welcome to the repository for Sean's Game. I have currently put this project on the back burner to pursue other things, but feel free to open issues, and pull requests.
+Welcome to the repository for Sean's Game. Feel free to open issues, and pull requests. I have recently hopped back in to work on it, and I brought in my expert team to work on this. 
 ## Chrome Extension
 To load this as a chrome extension, go to chrome://settings, and toggle Developer Mode to on, and click *Load Unpacked*, then select the folder containing the code. 
 The extension has been built from the start to comply with Manifest V3.
