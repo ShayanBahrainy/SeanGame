@@ -1,5 +1,5 @@
 import { Game } from "./server.js";
-
+import { Player } from "./player.js";
 class obstacle{
     constructor(height, width, renderer, target) {
         this.enemies = ["sean", "player"]
