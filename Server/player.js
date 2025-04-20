@@ -15,16 +15,17 @@ class player {
         this.timer = 0
         this.priority = 10
         this.fillStyle = "rgb(0,0,255)"
-        this.maxhealth = 255
+        this.maxhealth = 300
         this.health = this.maxhealth
         this.speed = 1.5
         this.healtime = 10 * Game.instance.fps
         this.heal = this.healtime
+        this.mouseX = 0
+        this.mouseY = 0
         this.score = 0
         this.renderparts = [
             {shape: "rectangle", x: this.x + 3, y: this.y, height: 5, width: 12.5, fillStyle:"rgb(255,0,255)", priority: 11},
             {shape: "rectangle", x: this.x + 3, y: this.y, height: 12.5, width: 5, fillStyle:"rgb(255,0,255)", priority: 11},
-
         ]
         this.scoretext = new PlayerText(renderer, "0", remoteAddress, (Game.width/10) * 9, 0, false, false)
         this.nametag = new PlayerText(renderer, name, remoteAddress, (Game.width/10) * 1, 0, false, false)
@@ -33,7 +34,7 @@ class player {
         this.vertexes = 12
         this.apothem = 7
         this.renderer = renderer
-        this.playeraim = new playeraim(this,3,10,renderer,remoteAddress)
+        //this.playeraim = new playeraim(this,3,10,renderer,remoteAddress)
         this.streak = 0
         this.hat = null
         this.targets = this.renderer.gamemode == Game.GameModes.Normal ? ["obstacle","boss","abhinav", "player"] : ["obstacle","boss","bossobstacle", "abhinavsquared"]
@@ -103,26 +104,31 @@ class player {
         }
         this.hat = new Hat(hat, this, this.renderer)
     }
+    aimDistance() {
+        return Math.sqrt(Math.pow(this.mouseX - this.x, 2) + Math.pow(this.mouseY - this.y, 2))
+    }
     fireBullet() {
         if (this.timer >= 0) {
             return
         }
-        if (this.distance(this,this.playeraim) < 25){
+        if (this.aimDistance() < 25){
             return
         }
         this.timer = this.reloadtime
         let CenterX = this.x + this.apothem/2
         let CenterY = this.y + this.apothem/2
 
-        let Y = this.playeraim.y - CenterY
-        let X = this.playeraim.x - CenterX
-        new bullet(10, CenterX + 9, CenterY, X/20, Y/20, this, this.renderer, this.targets, 50)
+        let Y = this.mouseY - CenterY
+        let X = this.mouseX - CenterX
+        new bullet(10, CenterX + 9, CenterY, X/20, Y/20, this, this.renderer, this.targets,50)
     }
     handleInput(data) {
         if (this.paused) {
             return
         }
-        this.playeraim.handleInput(data)
+        //this.playeraim.handleInput(data)
+        this.mouseX = data["MousePos"]["X"]
+        this.mouseY = data["MousePos"]["Y"]
         let keys = data.Keys
         if (data.MouseState) {
             this.fireBullet()
@@ -147,7 +153,7 @@ class player {
         }
     }
     destruct() {
-        this.playeraim.destruct()
+        //this.playeraim.destruct()
         if (this.hat) {
             this.hat.destruct()
         }
@@ -318,7 +324,7 @@ class bullet {
     }
     update() {
         this.lifetime -= 1
-        if (this.lifetime == 0) {
+        if (this.lifetime < 0) {
             this.renderer.removeObject(this.renderer,this)
         }
         this.x += this.xrate

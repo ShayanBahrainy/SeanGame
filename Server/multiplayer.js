@@ -119,10 +119,14 @@ class DataHandler {
     }
 }
 class NetworkingClient {
+    //Status constants
     static CONNECTING = 0
     static CONNECTED = 1
     static RECONNECTING = 2
     static DISCONNECTED = 3
+    //The FPS at which the *Server* ticks; used to calculate how big the buffer should be
+    static SERVER_FPS = 30;
+    static BUFFER_SIZE = Math.ceil(NetworkingClient.SERVER_FPS * 0.01);
     constructor(server, canvas, width, height, connectingtext) {
         this.server = server
         window.networkingclient = this
@@ -137,9 +141,14 @@ class NetworkingClient {
 
         this.statustext = connectingtext != null ? connectingtext : "Connecting..."
         this.status = NetworkingClient.CONNECTING
+        
+        this.frameBuffer = []
+
+        this.draw = this.draw.bind(this)
+        requestAnimationFrame(this.draw)
+
 
         this.connection = new WebSocket(this.server)
-
         this.connection.addEventListener("close", this)
         this.connection.addEventListener("message", this)
         this.connection.addEventListener("open", this)
@@ -210,7 +219,19 @@ class NetworkingClient {
         context.fill()
         context.closePath()
     }
-    draw(data) {
+    draw() {
+        requestAnimationFrame(this.draw)
+        let data
+        if (this.frameBuffer.length >= NetworkingClient.BUFFER_SIZE * 4) {
+            this.frameBuffer = this.frameBuffer.slice(0, NetworkingClient.BUFFER_SIZE)
+        }
+        if (this.frameBuffer.length >= NetworkingClient.BUFFER_SIZE) {
+            data = this.frameBuffer.shift();
+        }
+        else {
+            return
+        }
+
         const context = this.canvas.getContext("2d")
         context.clearRect(0,0,this.width,this.height)
         for (let key in data) {
@@ -262,7 +283,7 @@ class NetworkingClient {
 
     recieveUpdate(request) {
         if (request.type == "frame") {
-            this.draw(request.data)
+            this.frameBuffer.push(request.data)
         }
         if (request.type == "kick") {
             this.statustext = request.reason
@@ -331,7 +352,7 @@ class NetworkingClient {
             this.statustext = ""
             this.status = NetworkingClient.CONNECTED
             this.requestEquipData()
-            this.tick = setInterval(this.sendUpdate, 1000/60, this)
+            this.tick = setInterval(this.sendUpdate, 1000 / 60, this)
         }
         if (ev.type == "close") {
             if (this.status != NetworkingClient.RECONNECTING) {

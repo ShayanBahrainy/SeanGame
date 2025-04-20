@@ -33,7 +33,7 @@ class game {
     static SocketTimeOutPeriod = 300000 
     static MinimumRewardPlayers = 2
     static RewardPerPlayer = 1500
-    static FPS = 60
+    static FPS = 30
     static TimeBetweenRounds = 20
     static WinQuantity = 250
     static RestartTime = game.FPS * 60 * 30 //Restart every 30 mins
