@@ -55,7 +55,7 @@ class obstacle{
         if (self.target.paused == true) {
             let players = []
             for (let obj of Game.instance.objects) {
-                if (obj.constructor.name == "player" && obj != self.target) {players.push(obj)}
+                if (obj.constructor instanceof Player && obj != self.target) {players.push(obj)}
             }
             if (players.length > 0) {
                 self.target = players[Math.floor(Math.random() * players.length)]
@@ -94,7 +94,7 @@ class obstacle{
         this.damagetimer -= 1
     }
     collision (self,object){
-        if (object.constructor.name == "player") {
+        if (object.constructor instanceof Player) {
             self.target = object
         }
         if (self.enemies.indexOf(object.constructor.name) != -1 && self.damagetimer < 0 ) {
@@ -118,7 +118,7 @@ class guardobstacle{
 
         this.priority = 0
         this.fillStyle = "rgb(255,0,0)"
-        this.speed = .4
+        this.speed = .4 * Game.FPS
         this.shape = "rectangle"
 
         this.health = 50

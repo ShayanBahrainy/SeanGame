@@ -2,15 +2,18 @@ import { Game } from './server.js'
 import { Bullet } from './player.js'
 
 class abhinavsquared {
+    static MinionsAtATime = 3;
     constructor(X,Y, renderer) {
         this.x = X
         this.y = Y
         this.priority = 100
         this.shape = "polygon"
+        this.speed = 50 * 1/Game.FPS
         this.vertexes = 6
         this.apothem = 20
         this.fillStyle = "rgb(255,0,0)"
         this.direction = 1
+        this.minionscount = 0
         this.health = (1250 * renderer.clients.length) + 1000
         this.maxhealth = (1250 * renderer.clients.length) + 1000
         this.text = "Nivek the Sinner"
@@ -32,7 +35,7 @@ class abhinavsquared {
     }
 
     update() {
-        this.x += 2 * this.direction
+        this.x += this.speed * this.direction
         if (this.x >= Game.width || this.x <= 0) {
             this.direction *= -1
         }
@@ -43,9 +46,13 @@ class abhinavsquared {
         if (this.spawntimer > 0) {
             this.spawntimer -= 1
         }
+        else if (this.minionscount > 0) {
+            ;
+        }
         else {
             this.spawntimer = this.enemyspawntime
-            new bossobstacle(this.renderer, this.x, this.y)
+            new bossobstacle(this.renderer, this, this.x, this.y)
+            this.minionscount += 1
         }
 
         this.renderparts[0].x = this.x + this.apothem
@@ -66,14 +73,15 @@ class abhinavsquared {
     }
 
 }
-class bossobstacle {
-    constructor(renderer, x, y) {
+class bossobstacle{
+    constructor(renderer, boss, x, y) {
         this.enemies = ["player"]
         this.renderer = renderer
         this.shape = "polygon"
         this.apothem = 15
         this.vertexes = 5
         this.x = x
+        this.boss = boss
         this.sidedirection = 0
         this.updirection = 0
         this.y = y
@@ -112,13 +120,16 @@ class bossobstacle {
         if (self.health <= 0) {
             self.destruct()
         }
+        /*
         if (self.deathtimer <= 0) {
             self.destruct()
         }
+        */
     }
     collision (self,object){
     }
     destruct() {
+        this.boss.minionscount -= 1
         Game.instance.removeObject(Game.instance, this)
     }
 }
