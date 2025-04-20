@@ -116,7 +116,7 @@ class player {
 
         let Y = this.playeraim.y - CenterY
         let X = this.playeraim.x - CenterX
-        new bullet(10, CenterX + 9, CenterY, X/20, Y/20, this, this.renderer, this.targets,50)
+        new bullet(10, CenterX + 9, CenterY, X/20, Y/20, this, this.renderer, this.targets, 50)
     }
     handleInput(data) {
         if (this.paused) {
@@ -326,7 +326,7 @@ class bullet {
         this.apothem += .01 * ((Math.abs(this.xrate) + Math.abs(this.yrate) ) /2)
     } 
     collision(self, collidee) {
-        if (!self.targets.includes(collidee.constructor.name)){
+        if (!self.targets.includes(collidee.constructor.name)) {
             return
         }
         if (self.owner == collidee) {

@@ -215,7 +215,7 @@ class NetworkingClient {
         context.clearRect(0,0,this.width,this.height)
         for (let key in data) {
             let object = data[key]
-            if (object.type == "text"){
+            if (object.type == "text") {
                 context.font = "18px Times New Roman"
                 context.textAlign = "center"
                 context.textBaseline = "middle"
