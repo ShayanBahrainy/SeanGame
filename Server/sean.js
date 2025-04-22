@@ -1,9 +1,10 @@
 import {Bullet} from './player.js'
+import { Game } from './server.js';
 
 class sean {
     constructor(radius, renderer) {
         this.radius = radius
-        this.x = renderer.width/2;
+        this.x = Game.width / 2;
         this.y = 20;
         this.priority = 10
         this.cooldowntime = 0
@@ -13,6 +14,7 @@ class sean {
         this.maxhealth = 400
         this.health = this.maxhealth
         this.shape = "circle"
+        this.angle = 180
         this.renderer = renderer
         this.score = 0
         this.text = "Sean: " + this.maxhealth + "/" + this.maxhealth
