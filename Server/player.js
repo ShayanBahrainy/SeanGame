@@ -34,7 +34,6 @@ class player {
         this.vertexes = 12
         this.apothem = 7
         this.renderer = renderer
-        //this.playeraim = new playeraim(this,3,10,renderer,remoteAddress)
         this.streak = 0
         this.hat = null
         this.targets = this.renderer.gamemode == Game.GameModes.Normal ? ["obstacle","boss","abhinav", "player"] : ["obstacle","boss","bossobstacle", "abhinavsquared"]
@@ -126,7 +125,6 @@ class player {
         if (this.paused) {
             return
         }
-        //this.playeraim.handleInput(data)
         this.mouseX = data["MousePos"]["X"]
         this.mouseY = data["MousePos"]["Y"]
         let keys = data.Keys

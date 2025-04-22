@@ -56,8 +56,8 @@ class game {
     this.intervalId = setInterval(this.tick,Math.round(1000/this.fps),this)
     let self = this
     readFile("names.txt").then(function (V) {
-    V = V.toString()
-    self.names = V.split("\n")
+        V = V.toString()
+        self.names = V.split("\n")
     })
     this.server = server ? server : game.setupSocketServer()
     this.server.on('connection', this.newClient)
@@ -159,10 +159,10 @@ static selectGameMode(estimatedclientcount) {
     setTimeout(sendAll, 1000)
   }
 
-  getRenderables() {
+  getRenderables(remoteAddress) {
     let renderObjects = []
-    for (let object of this.objects) {
-        if (object.type != "empty") {
+    for (let object of (remoteAddress ? this.playeronly[remoteAddress] : this.objects)) {
+        if (object.shape != "empty") {
             renderObjects.push(object)
         }
         if (Object.hasOwn(object, "renderparts")) {
@@ -171,11 +171,19 @@ static selectGameMode(estimatedclientcount) {
     }
     renderObjects = game.sortObjects(renderObjects)
     let data = []
+    let dominant = {dominant: false}
     for (let key in renderObjects) {
         let object = renderObjects[key] 
         if (Object.hasOwn(object, "text")){
             let text = {type: "text", text: object.text, x: object.x, y: object.y + 20}
+            if (object.isdominant) {
+                dominant = text
+                dominant.dominant = true
+            }
             data.push(text)
+        }
+        if (!Object.hasOwn(object, "pVelocity") && object.constructor.name != "Object") {
+            //console.warn(object.constructor.name + " has no predicted velocity!! (pVelocity)")
         }
         let render = {}
         render.fillStyle = object.fillStyle
@@ -189,6 +197,7 @@ static selectGameMode(estimatedclientcount) {
         if (object.shape == "circle"){
             render.type = "circle"
             render.radius = object.radius
+            render.angle = object.angle ? object.angle : 360
         }
         if (object.shape == "texture") {
             render.type = "texture"
@@ -205,46 +214,9 @@ static selectGameMode(estimatedclientcount) {
             }
         }
         data.push(render)
-    }
-    return data
-  }
-  getPlayerRenderables(remoteAddress) {
-    let renderObjects = this.playeronly[remoteAddress]
-    let data = []
-    let dominant  
-    for (let key in renderObjects) {
-        let object = renderObjects[key] 
-        if (Object.hasOwn(object, "text")){
-            let text = {type: "text", text: object.text, x: object.x, y: object.y + 20}
-            if (object.isdominant) {
-                dominant = text
-                dominant.dominant = true
-            }
-            data.push(text)
+        if (dominant.dominant) {
+            return [dominant]
         }
-        let render = {}
-        render.fillStyle = object.fillStyle
-        render.x = object.x
-        render.y = object.y
-        if (object.shape == "rectangle"){
-            render.type = "rectangle"
-            render.width = object.width
-            render.height = object.height
-        }
-        if (object.shape == "circle"){
-            render.type = "circle"
-            render.radius = object.radius
-        }
-        if (object.shape == "texture") {
-            render.type = "texture"
-            render.width = object.width
-            render.height = object.height
-            render.src = object.texture
-        }
-        data.push(render)
-    }
-    if (dominant) {
-        return [dominant]
     }
     return data
   }
@@ -252,10 +224,14 @@ static selectGameMode(estimatedclientcount) {
     let data = this.getRenderables()
     for (let name in this.clients) {
         let socket = this.clients[name]
-        let playerdata = this.getPlayerRenderables(game.getRemoteAddress(socket))
+        let playerdata = this.getRenderables(game.getRemoteAddress(socket))
         let request = {
             type : "frame",
             data : playerdata.concat(data)
+        }
+        //If PlayerData contains one dominant element we only transmit that
+        if (playerdata.length == 1 && playerdata[0].dominant) {
+            request.data = playerdata
         }
         for (let key in request.data) {
             let value = request.data[key]
@@ -601,7 +577,7 @@ static selectGameMode(estimatedclientcount) {
   removePlayerObject(remoteAddress, object) {
     var index = this.playeronly[remoteAddress].indexOf(object)
     if (index != -1){
-        delete this.playeronly[remoteAddress][index]
+        this.playeronly[remoteAddress].splice(index, 1)
     }
   }
   static sortObjects(objects) {

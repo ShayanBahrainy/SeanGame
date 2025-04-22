@@ -249,7 +249,7 @@ class NetworkingClient {
             }
             if (object.type == "circle"){
                 context.beginPath()
-                context.arc(object.x,object.y,object.radius,0,360,false)
+                context.arc(object.x,object.y,object.radius,0, object.angle ? object.angle * Math.PI/180 : 360 * Math.PI / 180,false)
                 context.closePath()
                 context.fill()
             }
@@ -264,6 +264,12 @@ class NetworkingClient {
 
             this.drawConvex(context, object.vertexes, object.apothem, object.x, object.y, object.rotation)
         } 
+        //Drawing dot for mouse is now client-side, to prevent visible input delay.
+        context.beginPath()
+        context.fillStyle = "rgb(255, 0, 0)"
+        context.arc(this.mousex,this.mousey,5,0,360 * Math.PI / 180,false)
+        context.closePath()
+        context.fill()
     }
     set statustext(value) {
         this._statustext = value
