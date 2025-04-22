@@ -92,6 +92,8 @@ class game {
 
 static selectGameMode(estimatedclientcount) {
     let random = Math.floor(Math.random() * 100)
+    console.log("Gamemode thing remember!");
+    return game.GameModes.Boss
     if (random <= 25) {
         console.log("Boss!")
         return game.GameModes.Boss

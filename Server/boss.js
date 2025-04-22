@@ -24,9 +24,10 @@ class abhinavsquared {
 
             // Left Gun
             {x: (this.x - this.apothem * 2) + (this.apothem / 5), y: this.y + this.apothem, width: this.apothem, height: this.apothem / 5, shape: "rectangle", fillStyle: "rgb(51, 255, 0)", priority: 101},
-            {x: this.x - this.apothem, y: this.y + this.apothem, width: this.apothem / 5, height: this.apothem / 2, shape: "rectangle", fillStyle: "rgb(51, 255, 0)", priority: 101}
+            {x: this.x - this.apothem, y: this.y + this.apothem, width: this.apothem / 5, height: this.apothem / 2, shape: "rectangle", fillStyle: "rgb(51, 255, 0)", priority: 101},
             
-            //TODO: give sunglasses
+            // Sunglasses
+            {x: this.x - this.apothem, y: this.y, width: this.apothem * 2, height: this.apothem / 5, shape: "rectangle", fillStyle: "rgb(0, 0, 0)", priority: 101}
         ]
         this.renderer = renderer
         this.enemyspawntime = Game.FPS * .5
@@ -42,7 +43,7 @@ class abhinavsquared {
         this.y = Game.height/2 + (Math.sin(1/100 * this.x) + Math.cos(1/40 * this.x)) * 100
         let bluecomponent = 255 - (this.health/this.maxhealth) * 255
         this.fillStyle = `rgb(255,${bluecomponent},0)`
-        this.text = `Nivek the Sinister (${this.health}/${this.maxhealth})`
+        this.text = `Nivek the Sinner (${this.health}/${this.maxhealth})`
         if (this.spawntimer > 0) {
             this.spawntimer -= 1
         }
@@ -66,6 +67,9 @@ class abhinavsquared {
 
         this.renderparts[3].x = this.x - (this.apothem + ((this.apothem * 2) / 5))
         this.renderparts[3].y = this.y
+
+        this.renderparts[4].x = this.x - this.apothem;
+        this.renderparts[4].y = this.y
     }
 
     collision (self, collidee) {
