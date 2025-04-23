@@ -27,7 +27,9 @@ class abhinavsquared {
             {x: this.x - this.apothem, y: this.y + this.apothem, width: this.apothem / 5, height: this.apothem / 2, shape: "rectangle", fillStyle: "rgb(51, 255, 0)", priority: 101},
             
             // Sunglasses
-            {x: this.x - this.apothem, y: this.y, width: this.apothem * 2, height: this.apothem / 5, shape: "rectangle", fillStyle: "rgb(0, 0, 0)", priority: 101}
+            {x: this.x - this.apothem, y: this.y - (this.apothem / 5), width: this.apothem * 2, height: this.apothem / 5, shape: "rectangle", fillStyle: "rgb(0, 0, 0)", priority: 101},
+            {x: this.x - (this.apothem / 2) + (this.apothem / 10), y: this.y, radius: this.apothem / 2.5, angle: 180, shape: "circle", fillStyle: "rgb(0, 0, 0,)", priority: 101},
+            {x: this.x + (this.apothem / 2) - (this.apothem / 10), y: this.y, radius: this.apothem / 2.5, angle: 180, shape: "circle", fillStyle: "rgb(0, 0, 0,)", priority: 101},
         ]
         this.renderer = renderer
         this.enemyspawntime = Game.FPS * .5
@@ -69,7 +71,13 @@ class abhinavsquared {
         this.renderparts[3].y = this.y
 
         this.renderparts[4].x = this.x - this.apothem;
-        this.renderparts[4].y = this.y
+        this.renderparts[4].y = this.y - (this.apothem / 5)
+
+        this.renderparts[5].x = this.x - (this.apothem / 2) + (this.apothem / 10);
+        this.renderparts[5].y = this.y
+
+        this.renderparts[6].x = this.x + (this.apothem / 2) - (this.apothem / 10);
+        this.renderparts[6].y = this.y
     }
 
     collision (self, collidee) {
