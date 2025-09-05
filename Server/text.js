@@ -6,6 +6,7 @@ class textentity {
         this.priority = -100
         this.x = x
         this.y = y
+        this.pvelocity = [0, 0]
         renderer.addObject(this)
     }
     update() {
@@ -26,6 +27,7 @@ class playertext {
         this.priority = -100
         this.x = x
         this.y = y
+        this.pvelocity = [0, 0]
         if (seconds) {
             this.timer = Game.instance.fps * seconds
         }

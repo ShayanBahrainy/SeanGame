@@ -36,6 +36,7 @@ class player {
         this.renderer = renderer
         this.streak = 0
         this.hat = null
+        this.pvelocity = [0, 0]
         this.targets = this.renderer.gamemode == Game.GameModes.Normal ? ["obstacle","boss","abhinav", "player"] : ["obstacle","boss","bossobstacle", "abhinavsquared"]
         renderer.addObject(this)
     }
@@ -252,6 +253,7 @@ class hat {
         this.r = 0
         this.g = 0
         this.b = 0
+        this.pvelocity = [0, 0]
         switch (type) {
             case ("WhiteHat"):
                 this.r = 255, this.b = 255, this.g = 255
@@ -314,6 +316,7 @@ class bullet {
         this.vertexes = 3
         this.apothem = radius
         this.owner = owner
+        this.pvelocity = [xrate, yrate]
         this.fillStyle = "rgb(255,0,0)"
         this.renderer = renderer
         this.targets = targets 

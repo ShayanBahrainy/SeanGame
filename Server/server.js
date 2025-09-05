@@ -16,6 +16,7 @@ import {createServer as createSecureServer} from 'https'
 
 import { readFileSync } from 'node:fs'
 
+import {BinaryEncoder, BinaryDecoder} from './binary.js'
 
 let isProduction = false
 let options
@@ -33,7 +34,7 @@ class game {
     static SocketTimeOutPeriod = 300000 
     static MinimumRewardPlayers = 2
     static RewardPerPlayer = 1500
-    static FPS = 30
+    static FPS = 60
     static TimeBetweenRounds = 20
     static WinQuantity = 250
     static RestartTime = game.FPS * 60 * 30 //Restart every 30 mins
@@ -124,27 +125,18 @@ static selectGameMode(estimatedclientcount) {
   static withDelay(time, previousmessage, estimatedclientcount) {
     let server = game.setupSocketServer()
     function newClient(socket) {
-        let r =  {}
         let message = 'Game starting in ' + time + ' seconds'
         let text = {type: 'text', text: (previousmessage ? previousmessage + message : message), x: this.width/2, y: this.height/2}
-        r.type = "frame"
-        r.data = [text]
-        socket.send(JSON.stringify(r))
+        socket.send(BinaryEncoder.encodePacket("frame", [text]))
     }
     server.on('connection', newClient)
     function sendFrame(socket) {
         let message = 'Game starting in ' + time + ' seconds'
         let text = {type: 'text', text: (previousmessage ? previousmessage + message : message), x: game.width/2, y: game.height/2}
-        let r = {}
-        r.type = "frame"
-        r.data = [text]
-        socket.send(JSON.stringify(r))
+        socket.send(BinaryEncoder.encodePacket("frame", [text]))
     }
     function sendReconnect(socket) {
-        let r = {}
-        r.type = "reconnect"
-        r.time = 2.5 * 1000
-        socket.send(JSON.stringify(r))
+        socket.send(BinaryEncoder.encodePacket("reconnect", 2.5 * 1000))
     }
     function sendAll() {
         time -= 1
@@ -164,10 +156,13 @@ static selectGameMode(estimatedclientcount) {
   getRenderables(remoteAddress) {
     let renderObjects = []
     for (let object of (remoteAddress ? this.playeronly[remoteAddress] : this.objects)) {
-        if (object.shape != "empty") {
+        if (object.shape != null) {
             renderObjects.push(object)
         }
         if (Object.hasOwn(object, "renderparts")) {
+            for (let render_object of object.renderparts) {
+                render_object.pvelocity = object.pvelocity
+            }
             renderObjects = renderObjects.concat(object.renderparts)
         }
     }
@@ -177,20 +172,22 @@ static selectGameMode(estimatedclientcount) {
     for (let key in renderObjects) {
         let object = renderObjects[key] 
         if (Object.hasOwn(object, "text")){
-            let text = {type: "text", text: object.text, x: object.x, y: object.y + 20}
+            let text = {type: "text", text: object.text, x: object.x, y: object.y + 20, pvelocity: object.pvelocity}
             if (object.isdominant) {
                 dominant = text
                 dominant.dominant = true
             }
             data.push(text)
         }
-        if (!Object.hasOwn(object, "pVelocity") && object.constructor.name != "Object") {
-            //console.warn(object.constructor.name + " has no predicted velocity!! (pVelocity)")
-        }
         let render = {}
         render.fillStyle = object.fillStyle
         render.x = object.x
         render.y = object.y
+        if (!Object.hasOwn(object, "pvelocity")) {
+            console.warn("ERROR! (Ey Jon!) " + object.constructor.name + " has no predicted velocity!! (pvelocity)")
+            console.warn("If you just got an error with Object, this means a non-class based object is missing its pvelocity, e.g. an object of another objects `renderparts`")
+        }
+        render.pvelocity = object.pvelocity
         if (object.shape == "rectangle"){
             render.type = "rectangle"
             render.width = object.width
@@ -200,12 +197,6 @@ static selectGameMode(estimatedclientcount) {
             render.type = "circle"
             render.radius = object.radius
             render.angle = object.angle ? object.angle : 360
-        }
-        if (object.shape == "texture") {
-            render.type = "texture"
-            render.width = object.width
-            render.height = object.height
-            render.src = object.texture
         }
         if (object.shape == "polygon") {
             render.type = "polygon"
@@ -227,46 +218,29 @@ static selectGameMode(estimatedclientcount) {
     for (let name in this.clients) {
         let socket = this.clients[name]
         let playerdata = this.getRenderables(game.getRemoteAddress(socket))
-        let request = {
-            type : "frame",
-            data : playerdata.concat(data)
-        }
-        //If PlayerData contains one dominant element we only transmit that
-        if (playerdata.length == 1 && playerdata[0].dominant) {
-            request.data = playerdata
-        }
-        for (let key in request.data) {
-            let value = request.data[key]
-            if (value.dominant) {
-                request.data = [value]
+
+        let objects = playerdata.concat(data) //Because playerdata comes first, a dominant object there takes precedence
+
+        for (let object of objects) {
+            if (object.dominant) {
+                objects = [object]
                 break
             }
         }
-        socket.send(JSON.stringify(request))
+
+        socket.send(BinaryEncoder.encodePacket("frame", objects))
     }
   }
 
   sendBling(socket, amount) {
-    let request = {
-        type : "bling",
-        amount : amount
-    }
-    socket.send(JSON.stringify(request))
+    socket.send(BinaryEncoder.encodePacket("bling", amount))
   }
 
   sendWin(socket) {
-    let request = {
-        type : "win",
-        players : this.clients.length
-    }
-    socket.send(JSON.stringify(request))
+    socket.send(BinaryEncoder.encodePacket("win", this.clients.length))
   }
   sendKick(socket, reason) {
-    let request = {
-        type : "kick",
-        reason : reason
-    }
-    socket.send(JSON.stringify(request))
+    socket.send(BinaryEncoder.encodePacket("kick", reason))
     socket.close()
   }
   newClient(socket, request) {
@@ -282,7 +256,7 @@ static selectGameMode(estimatedclientcount) {
         game.instance.clients.splice(game.instance.clients.indexOf(socket),1)
     });
     socket.on('message', function (data) {
-        data = JSON.parse(data)
+        data = BinaryDecoder.decodePacket(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength))
         if (data.Type == "Play") {
             game.instance.handleInput(socket, data)
         }
@@ -347,11 +321,7 @@ static selectGameMode(estimatedclientcount) {
     self.restarttimer += 1
     if (self.restarttimer >= game.RestartTime) {
         for (let name in self.clients) {
-            let r = {}
-            r.type = "reconnect"
-            r.text = "Server needs to restart!"
-            r.time = .5 * 1000
-            self.clients[name].send(JSON.stringify(r))
+            self.clients[name].send(BinaryEncoder.encodePacket("reconnect", "Server needs to restart!", .5 * 1000))
         }
         self.server.on('close', function () {
             setTimeout(game.withDelay, 300, game.TimeBetweenRounds, "Server restarted! ", self.clients.length)
@@ -362,7 +332,7 @@ static selectGameMode(estimatedclientcount) {
     if (self.gamemode == Game.GameModes.Normal) {
         self.handleEnemyCount()
     }
-    self.collisonChecks(self)
+    self.collisionChecks(self)
     let renderObjects = game.sortObjects(self.objects)
     for (let key in renderObjects) {
         let object = renderObjects[key] 
@@ -385,11 +355,7 @@ static selectGameMode(estimatedclientcount) {
         }
         if (self.teamscore <= 0) {
             for (let name in self.clients) {
-                let r = {}
-                r.type = "reconnect"
-                r.text = " Y'all losers. "
-                r.time = .5 * 1000           
-                self.clients[name].send(JSON.stringify(r))
+                self.clients[name].send(BinaryEncoder.encodePacket("reconnect", "Y'all losers. ", .5 * 1000))
             }
             self.server.on('close', function () {
                 setTimeout(game.withDelay, 300, game.TimeBetweenRounds, " Y'all losers. ", self.clients.length)
@@ -401,31 +367,20 @@ static selectGameMode(estimatedclientcount) {
     if (winner) {
         if (self.gamemode == Game.GameModes.Normal) {
             for (let name in self.clients) {
-                let r = {}
-                r.type = "reconnect"
-                r.text = winner.text + " won! "
-                r.time = .5 * 1000
                 if (self.playerobjects[Game.getRemoteAddress(self.clients[name])] == winner && self.clients.length >= game.MinimumRewardPlayers) {
-                    //self.sendBling(self.clients[name], game.RewardPerPlayer * self.clients.length)
                     self.sendWin(self.clients[name])
-                    r.text += " (You)"
                 }
-                self.clients[name].send(JSON.stringify(r))
+                self.clients[name].send(BinaryEncoder.encodePacket("reconnect", winner.text + " won! ", .5 * 1000))
             }
         }
         if (self.gamemode == Game.GameModes.Boss) {
             for (let name in self.clients) {
-                let r = {}
-                r.type = "reconnect"
-                r.text = " Y'all won! "
-                r.time = .5 * 1000
-                self.sendBling(self.clients[name], 750 * self.clients.length + 1000)            
-                self.clients[name].send(JSON.stringify(r))
+                self.sendBling(self.clients[name], 750 * self.clients.length + 1000)
+                self.clients[name].send(BinaryEncoder.encodePacket("reconnect", " Y'all won!", .5 * 1000))
             }
         }
         self.server.on('close', function () {
             setTimeout(game.withDelay, 300, game.TimeBetweenRounds, winner.text ? winner.text + " won! " : " Y'all won! ", self.clients.length)
-            //game.withDelay(60, winner.text + " won! ")
         })
         self.shutdownServer(self)
     }
@@ -467,14 +422,14 @@ static selectGameMode(estimatedclientcount) {
     }
     return false
   }
-  calulateSpatialMap(self) {
+  calculateSpatialMap(self) {
     let SpatialMap = []
     for (let object of self.objects){
-        let X = Math.floor(object.x/25)
+        let X = Math.floor(object.x/50)
         if (SpatialMap[X] == null) {
             SpatialMap[X] = []
         }
-        let Y = Math.floor(object.y/25)
+        let Y = Math.floor(object.y/50)
         if (SpatialMap[X][Y] == null) {
             SpatialMap[X][Y] = []
         }
@@ -536,10 +491,10 @@ static selectGameMode(estimatedclientcount) {
         }
     }
   }
-  collisonChecks(self) {
+  collisionChecks(self) {
     //Our spatial maps are 2d arrays where first dimension is x, second is y, and the values are arrays of objects at that coordinate
     //Spatial Map = [[[Object1], [Object2]], [[Object3], [Object4,Object5]]
-    let SpatialMap = self.calulateSpatialMap(self)
+    let SpatialMap = self.calculateSpatialMap(self)
     for (let Ys of SpatialMap) {
         if (!Ys) {
             continue

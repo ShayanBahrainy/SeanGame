@@ -1,3 +1,6 @@
+import { BinaryEncoder, BinaryDecoder } from "/binary.js"
+
+
 let renderer
 let player
 let obstacle
@@ -8,6 +11,7 @@ let networkingclient
 let boss
 let abhinav
 let GAMEMODE
+
 class DataHandler {
     constructor(reset) {
         if (reset){
@@ -124,9 +128,9 @@ class NetworkingClient {
     static CONNECTED = 1
     static RECONNECTING = 2
     static DISCONNECTED = 3
-    //The FPS at which the *Server* ticks; used to calculate how big the buffer should be
-    static SERVER_FPS = 30;
-    static BUFFER_SIZE = Math.ceil(NetworkingClient.SERVER_FPS * 0.01);
+    //SERVER FPS required for syncing
+    static SERVER_FPS = 60;
+    static BUFFER_SIZE = 6; 
     constructor(server, canvas, width, height, connectingtext) {
         this.server = server
         window.networkingclient = this
@@ -141,14 +145,17 @@ class NetworkingClient {
 
         this.statustext = connectingtext != null ? connectingtext : "Connecting..."
         this.status = NetworkingClient.CONNECTING
-        
-        this.frameBuffer = []
 
         this.draw = this.draw.bind(this)
         requestAnimationFrame(this.draw)
 
 
+        this.framebuffer = []
+
+        this.lastdata = null
+
         this.connection = new WebSocket(this.server)
+        this.connection.binaryType = "arraybuffer"
         this.connection.addEventListener("close", this)
         this.connection.addEventListener("message", this)
         this.connection.addEventListener("open", this)
@@ -219,18 +226,45 @@ class NetworkingClient {
         context.fill()
         context.closePath()
     }
+    debugCollisionGrid(context, objects) {
+        for (let object of objects) {
+            context.beginPath()
+            context.arc(Math.floor(object.x / 50) * 50, Math.floor(object.y / 50) * 50, 2, 0, 360 * Math.PI / 180,false)
+            context.closePath()
+            context.fill()
+            context.beginPath()
+            context.moveTo(0, object.y)
+            context.lineTo(this.width, object.y)
+            context.stroke()
+            context.closePath()
+            context.beginPath()
+            context.moveTo(object.x, 0)
+            context.lineTo(object.x, this.height)
+            context.stroke()
+            context.closePath()
+        }
+    }
+    computeInference() {
+        let newdata = this.lastdata.slice()
+        for (let i = 0; i < this.lastdata.length; ++i) {
+            let object = this.lastdata[i]
+            newdata.push(object)
+            if (object.pvelocity) {
+                newdata[i].x += object.pvelocity[0]
+                newdata[i].y += object.pvelocity[1]
+            }
+        }
+        return newdata
+    }
     draw() {
         requestAnimationFrame(this.draw)
         let data
-        if (this.frameBuffer.length >= NetworkingClient.BUFFER_SIZE * 4) {
-            this.frameBuffer = this.frameBuffer.slice(0, NetworkingClient.BUFFER_SIZE)
+        if (this.framebuffer.length == 0 && this.lastdata) {
+            data = this.computeInference()
         }
-        if (this.frameBuffer.length >= NetworkingClient.BUFFER_SIZE) {
-            data = this.frameBuffer.shift();
-        }
-        else {
-            return
-        }
+
+        data = data ? data : this.framebuffer.shift()
+        this.lastdata = data
 
         const context = this.canvas.getContext("2d")
         context.clearRect(0,0,this.width,this.height)
@@ -242,6 +276,7 @@ class NetworkingClient {
                 context.textBaseline = "middle"
                 context.fillStyle = "#8aea92"
                 context.fillText(object.text,object.x,object.y)
+                console.log(object)
             }
             context.fillStyle = object.fillStyle
             if (object.type == "rectangle"){
@@ -253,15 +288,9 @@ class NetworkingClient {
                 context.closePath()
                 context.fill()
             }
-            if (object.type == "texture") {
-                let img = new Image(object.width,object.height)
-                img.src = object.texture
-                context.drawImage(img,object.x,object.y)
-            }
             if (object.type != "polygon") {
                 continue
             }
-
             this.drawConvex(context, object.vertexes, object.apothem, object.x, object.y, object.rotation)
         } 
         //Drawing dot for mouse is now client-side, to prevent visible input delay.
@@ -289,7 +318,7 @@ class NetworkingClient {
 
     recieveUpdate(request) {
         if (request.type == "frame") {
-            this.frameBuffer.push(request.data)
+            this.framebuffer.push(request.data)
         }
         if (request.type == "kick") {
             this.statustext = request.reason
@@ -319,11 +348,7 @@ class NetworkingClient {
     }
 
     sendEquip(hat) {
-        let Equip = {
-            Type: "Equip",
-            Hat: hat
-        }
-        this.connection.send(JSON.stringify(Equip))
+        this.connection.send(BinaryEncoder.encodePacket("Equip", hat))
     }
 
     receiveMessage(message) {
@@ -350,7 +375,7 @@ class NetworkingClient {
                 this.receiveMessage(ev.data)
             }
             if (ev.target instanceof WebSocket) {
-                this.recieveUpdate(JSON.parse(ev.data))
+                this.recieveUpdate(BinaryDecoder.decodePacket(ev.data))
                 this.lastMessage = new Date().getTime()
             }
         }
@@ -389,7 +414,7 @@ class NetworkingClient {
             MousePos: {X: self.mousex, Y: self.mousey},
             MouseState: self.mousestate
         }
-        self.connection.send(JSON.stringify(Input))
+        self.connection.send(BinaryEncoder.encodePacket("Play", self.mousestate, self.mousex, self.mousey, self.keys))
     }
 }
 window.addEventListener("load", function (){
@@ -405,6 +430,5 @@ window.addEventListener("load", function (){
     networkingclient = new NetworkingClient(protocol + server + ":" + port, canvas, window.innerWidth, window.innerHeight)
 })
 window.addEventListener("pagehide", function() {
-	    networkingclient.connection.close()
-	    this.window.close()
+	networkingclient.connection.close()
 })

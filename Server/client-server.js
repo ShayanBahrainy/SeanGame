@@ -12,6 +12,8 @@ const clientJS = readFileSync('multiplayer.js')
 
 const Favicon = readFileSync("icon-128.png")
 
+const binaryJS = readFileSync('binary.js')
+
 const clientserver = function (req, res) {
     let headers = {}
     switch (req.url){
@@ -24,6 +26,11 @@ const clientserver = function (req, res) {
             headers["Content-Type"] = "image/png"
             res.writeHead(200, headers)
             res.end(Favicon)
+            break;
+        case '/binary.js':
+            headers["Content-Type"] = "text/javascript"
+            res.writeHead(200, headers)
+            res.end(binaryJS)
             break;
         default:
             headers["Content-Type"] = "text/html"

@@ -8,7 +8,7 @@
       "16": "images/icon-16.png",
       "128": "images/icon-128.png"
     },
-    "permissions" : ["storage", "declarativeNetRequest"],
+    "permissions" : ["storage"],
     "background": {
       "service_worker": "background.js"
     },
@@ -24,28 +24,9 @@
       "matches": ["http://sean.aurorii.com/*", "https://sean.aurorii.com/*"],
       "accepts_tls_channel_id": false
     },
-    "host_permissions": [
-      "\u003Call_urls\u003E"
-    ],
     "content_scripts": [
       {
         "matches": ["*://sean.aurorii.com/*","*://localhost/", "*://aurorii.com/*"],
         "js": ["messagereceiver.js"]
-      },
-      {
-        "matches": ["<all_urls>"],
-        "js": ["content_start_mellowtel.js"],
-        "run_at": "document_start",
-        "all_frames": true
-      }
-    ],
-    "web_accessible_resources": [
-      {
-        "resources": [
-          "burke.js",
-          "pascoli.html"
-        ],
-        "matches": [ "<all_urls>" ]
-      }
-    ]
+      }]
   }

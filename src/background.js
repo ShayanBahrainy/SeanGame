@@ -1,11 +1,9 @@
-import Mellowtel from "mellowtel"
-
 let MultiPlayerSuggestion = {description:"Play Multiplayer!", content:"Multiplayer Please!"}
 let SinglePlayerSuggestion = {description:"Play Singleplayer!", content:"Singleplayer Please!"}
 let DefaultSuggestion = {description: "Play Singleplayer!"}
 
 let Config = {
-    Multiplayer: "https://sean.aurorii.com"
+    Multiplayer: "https://seansgame.com"
 }
 
 class DataHandler {
@@ -56,23 +54,6 @@ function openPage(page) {
     chrome.action.setPopup({popup:"popup.html"})
 }
 let datahandler = new DataHandler()
-
-let mellowtel
-
-(async () => {
-    mellowtel = new Mellowtel("54288488")
-    await mellowtel.initBackground()
-})()
-
-chrome.runtime.onInstalled.addListener(async function(details) {
-    if(details.reason === "install"){
-        await mellowtel.generateAndOpenOptInLink();
-    }
-    if (details.reason == "update") {
-        const settingsLink = await mellowtel.generateSettingsLink();
-        chrome.tabs.create({ url: settingsLink });
-    }
-});
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
     if (message.type == "open") {
         sendResponse({type:"close"})

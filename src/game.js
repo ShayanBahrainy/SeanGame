@@ -8,10 +8,8 @@ let boss
 let abhinav
 let GAMEMODE
 let Config = {
-    MultiplayerClient: "https://sean.aurorii.com"
+    MultiplayerClient: "https://seansgame.com"
 }
-
-import Mellowtel from "mellowtel";
 
 class Boss {
     constructor(radius, player, renderer, datahandler) {
@@ -1129,12 +1127,6 @@ function processEvents() {
         }
     }
 }
-let mellowtel;
-
-(async () => {
-    mellowtel = new Mellowtel("54288488"); // Replace with your configuration key
-    await mellowtel.initBackground();
-})();
 window.addEventListener("load", function (){
     processEvents()
     datahandler = new DataHandler(false)
@@ -1189,8 +1181,5 @@ window.addEventListener("load", function (){
     datahandler.getBling().then(UpdateBling)
     this.document.getElementById("shop").addEventListener("click",function () {
         openPage("shop.html")
-    })
-    this.document.getElementById("paymentsettings").addEventListener("click", async function () {
-        window.open(await mellowtel.generateSettingsLink())
     })
 })

@@ -19,6 +19,7 @@ class obstacle{
         this.health = 50
         this.damage = 50
         this.damagetimer = this.damagetime
+        this.pvelocity = [0, 0]
         let type = Math.random() * 100
         if (95 >= type && type > 70){
             this.fillStyle = "rgb(255, 158, 61)"
@@ -48,6 +49,7 @@ class obstacle{
         return Y
     }
     update(self) {
+        self.pvelocity = [self.sidedirection * self.speed, self.updirection * self.speed]
         if (self.renderer.enemydestruct) {
             self.renderer.enemydestruct = false
             self.destruct()
@@ -91,7 +93,7 @@ class obstacle{
         }
         self.x += self.sidedirection * self.speed
         self.y += self.updirection * self.speed
-        this.damagetimer -= 1
+        self.damagetimer -= 1
     }
     collision (self,object){
         if (object.constructor instanceof Player) {
@@ -148,7 +150,7 @@ class guardobstacle{
         }
 
         self.axis == 'x' ? self.x += 2 * self.movedirection : self.y += 2 * self.movedirection
-
+        this.pvelocity = self.axis == 'x' ? [2 * self.movedirection, 0] : [0, 2 * self.movedirection]
         self.damagetimer -= 1
     }
     collision (self,object){

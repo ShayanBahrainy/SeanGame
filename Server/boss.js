@@ -14,6 +14,7 @@ class abhinavsquared {
         this.fillStyle = "rgb(255,0,0)"
         this.direction = 1
         this.minionscount = 0
+        this.pvelocity = [0, 0]
         this.health = (1250 * renderer.clients.length) + 1000
         this.maxhealth = (1250 * renderer.clients.length) + 1000
         this.text = "Nivek the Sinner"
@@ -38,6 +39,7 @@ class abhinavsquared {
     }
 
     update() {
+        this.pvelocity = [this.speed * this.direction, Game.height/2 + (Math.sin(1/100 * this.x) + Math.cos(1/40 * this.x)) * 100]
         this.x += this.speed * this.direction
         if (this.x >= Game.width || this.x <= 0) {
             this.direction *= -1
@@ -105,6 +107,7 @@ class bossobstacle{
         this.shoottimer = this.shoottime
         this.deathtime = Game.FPS * 1
         this.deathtimer = this.deathtime
+        this.pvelocity = [0, 0]
         renderer.addObject(this)
     }
     getRandomTarget () {
@@ -118,6 +121,7 @@ class bossobstacle{
     }
     update(self) {
         self.deathtimer -= 1
+        this.pvelocity = [0, 0]
         if (self.shoottimer > 0) {
             self.shoottimer -= 1
             return
